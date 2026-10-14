@@ -1,0 +1,16 @@
+{
+  "name": "SachiSeva — AP schemes & services",
+  "short_name": "SachiSeva",
+  "description": "Every Andhra Pradesh welfare scheme and Sachivalayam service in Telugu and English. See all the schemes your family qualifies for and apply for all of them together.",
+  "lang": "en-IN",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#F4F5FA",
+  "theme_color": "#1C2566",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

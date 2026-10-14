@@ -1,0 +1,148 @@
+@import "tailwindcss";
+@import "@fontsource-variable/anek-telugu/wdth.css";
+
+/*
+  SachiSeva design tokens
+  ink      — official indigo, used for text, headers and navigation
+  turmeric — the one action colour (buttons, active states)
+  leaf     — success / approved
+  kumkum   — errors / rejected / very busy
+  paper    — cards; mist — page background
+*/
+@theme {
+  --color-ink: #1c2566;
+  --color-ink-soft: #3b4590;
+  --color-ink-50: #eef0fa;
+  --color-ink-100: #dfe3f5;
+  --color-turmeric: #f2b632;
+  --color-turmeric-deep: #c98a06;
+  --color-turmeric-50: #fdf5e1;
+  --color-leaf: #1f7a4d;
+  --color-leaf-50: #e6f4ec;
+  --color-kumkum: #b3261e;
+  --color-kumkum-50: #fbeceb;
+  --color-amber: #a8650a;
+  --color-amber-50: #fdf1dc;
+  --color-paper: #ffffff;
+  --color-mist: #f4f5f9;
+  --color-line: #e3e5ee;
+  --color-muted: #5d6385;
+
+  --font-sans: "Anek Telugu Variable", "Noto Sans Telugu", system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  --radius-card: 18px;
+  --radius-field: 12px;
+
+  --shadow-lift: 0 1px 2px rgb(28 37 102 / 0.06), 0 8px 24px -12px rgb(28 37 102 / 0.18);
+  --shadow-pop: 0 20px 50px -20px rgb(28 37 102 / 0.45);
+
+  --animate-rise: rise 0.28s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  --animate-sheet: sheet 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  --animate-fade: fade 0.2s ease-out both;
+
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: none; }
+  }
+  @keyframes sheet {
+    from { transform: translateY(100%); }
+    to { transform: none; }
+  }
+  @keyframes fade {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    font-family: var(--font-sans);
+    font-variation-settings: "wdth" 100;
+    background: var(--color-mist);
+    color: var(--color-ink);
+    font-size: 16px;
+    line-height: 1.5;
+    text-rendering: optimizeLegibility;
+  }
+  h1, h2, h3 {
+    font-variation-settings: "wdth" 112;
+    letter-spacing: -0.01em;
+    line-height: 1.15;
+  }
+  * { border-color: var(--color-line); }
+  ::selection { background: var(--color-turmeric); color: var(--color-ink); }
+  :focus-visible {
+    outline: 3px solid var(--color-turmeric);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+  input, select, textarea, button { font: inherit; }
+}
+
+/* The wide display cut of Anek Telugu: used for the wordmark and page titles. */
+.display {
+  font-variation-settings: "wdth" 112;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+}
+.display-wide {
+  font-variation-settings: "wdth" 125;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+}
+
+/* Muggu (kolam) dot lattice — the app's one decorative motif. */
+.muggu {
+  background-image: radial-gradient(circle at center, rgb(242 182 50 / 0.55) 1.6px, transparent 2px);
+  background-size: 22px 22px;
+}
+.muggu-faint {
+  background-image: radial-gradient(circle at center, rgb(28 37 102 / 0.09) 1.4px, transparent 1.8px);
+  background-size: 20px 20px;
+}
+
+.skeleton {
+  background: linear-gradient(90deg, #eceef5 0%, #f6f7fb 50%, #eceef5 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.3s linear infinite;
+  border-radius: 10px;
+}
+@keyframes shimmer { to { background-position: -200% 0; } }
+
+.pulse-ring { animation: pulseRing 1.4s ease-out infinite; }
+@keyframes pulseRing {
+  0% { box-shadow: 0 0 0 0 rgb(242 182 50 / 0.6); }
+  100% { box-shadow: 0 0 0 14px rgb(242 182 50 / 0); }
+}
+
+.scrollbar-none { scrollbar-width: none; }
+.scrollbar-none::-webkit-scrollbar { display: none; }
+
+.pb-safe { padding-bottom: max(env(safe-area-inset-bottom), 0px); }
+
+/* Leaflet */
+.leaflet-container { z-index: 0; font-family: var(--font-sans); }
+.leaflet-popup-content-wrapper { border-radius: 14px; box-shadow: var(--shadow-pop); }
+.leaflet-popup-content { margin: 12px 14px; }
+
+/* Markdown inside chat bubbles */
+.prose-chat p { margin: 0 0 0.5rem; }
+.prose-chat p:last-child { margin-bottom: 0; }
+.prose-chat ul, .prose-chat ol { margin: 0.25rem 0 0.5rem 1.1rem; }
+.prose-chat ul { list-style: disc; }
+.prose-chat ol { list-style: decimal; }
+.prose-chat strong { font-weight: 650; }
+.prose-chat a { text-decoration: underline; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

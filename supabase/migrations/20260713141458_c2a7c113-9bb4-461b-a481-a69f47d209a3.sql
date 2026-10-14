@@ -1,0 +1,3 @@
+DELETE FROM public.application_messages WHERE application_id IN (SELECT id FROM public.applications WHERE user_id IN (SELECT id FROM auth.users WHERE email LIKE 'test-a-%@example.com' OR email LIKE 'test-b-%@example.com' OR email LIKE 'sim-%@example.com'));
+DELETE FROM public.applications WHERE user_id IN (SELECT id FROM auth.users WHERE email LIKE 'test-a-%@example.com' OR email LIKE 'test-b-%@example.com' OR email LIKE 'sim-%@example.com');
+DELETE FROM auth.users WHERE email LIKE 'test-a-%@example.com' OR email LIKE 'test-b-%@example.com' OR email LIKE 'sim-%@example.com';

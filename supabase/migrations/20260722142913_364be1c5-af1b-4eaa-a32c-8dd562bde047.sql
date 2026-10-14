@@ -1,0 +1,23 @@
+INSERT INTO public.schemes (id, name, name_telugu, description, required_documents, eligibility_rules) VALUES
+('ntr-bharosa-pension','NTR Bharosa Pension','ఎన్టీఆర్ భరోసా పింఛన్','Monthly social security pension.', ARRAY['Aadhaar Card','Age proof (SSC / Birth certificate)','Bank passbook (Aadhaar linked)','Ration card','Passport size photo','Disability certificate (if applicable)','Husband''s death certificate (widow pension)'], '{}'::jsonb),
+('talliki-vandanam','Talliki Vandanam','తల్లికి వందనం','Annual ₹15,000 to mothers.', ARRAY['Aadhaar (mother)','Child''s school enrollment proof','Bank passbook','Ration card','Passport size photo'], '{}'::jsonb),
+('annadata-sukhibhava','Annadata Sukhibhava','అన్నదాత సుఖీభవ','Annual ₹20,000 farmer income support.', ARRAY['Aadhaar','Pattadar Passbook','Bank passbook','Ration card','Residence certificate'], '{}'::jsonb),
+('deepam-2','Deepam 2.0','దీపం 2.0','3 free LPG cylinders per year.', ARRAY['Aadhaar','Ration card (White / Yellow)','Bank passbook','Passport photo','Residence certificate'], '{}'::jsonb),
+('free-bus-travel','Free Bus Travel for Women','మహిళలకు ఉచిత బస్సు ప్రయాణం','Free APSRTC travel for women.', ARRAY['Aadhaar card','Any valid photo ID (Female)'], '{}'::jsonb),
+('yuva-galam','Yuva Galam','యువ గళం','₹3,000/month unemployment allowance.', ARRAY['Aadhaar','Educational certificates','Unemployment proof','Bank passbook','Residence certificate','Income certificate'], '{}'::jsonb),
+('aadabidda-nidhi','Aadabidda Nidhi','ఆడబిడ్డ నిధి','₹1,500/month women assistance.', ARRAY['Aadhaar','Bank passbook','Ration card','Passport photo','Residence certificate'], '{}'::jsonb),
+('chandranna-pelli-kanuka','Chandranna Pelli Kanuka','చంద్రన్న పెళ్ళి కానుక','One-time ₹1,00,000 marriage gift.', ARRAY['Aadhaar (bride)','Caste certificate','Marriage certificate / invitation','Income certificate','Bank passbook','Ration card'], '{}'::jsonb),
+('pmay-gramin','PMAY-Gramin','పీఎం ఆవాస్ యోజన గ్రామీణ','Rural housing assistance.', ARRAY['Aadhaar','Ration card','Land ownership proof','Income certificate','Bank passbook','Residence certificate'], '{}'::jsonb),
+('ap-housing-scheme','AP Housing Scheme','ఏపీ గృహ పథకం','State housing assistance.', ARRAY['Aadhaar','Caste certificate','Income certificate','Land ownership proof','Ration card','Passport photo'], '{}'::jsonb),
+('post-matric-rtf','Post Matric RTF','పోస్ట్ మెట్రిక్ RTF','Full tuition fee reimbursement.', ARRAY['Aadhaar','Caste certificate','Income certificate','College admission proof','Previous year marks memo','Bank passbook'], '{}'::jsonb),
+('post-matric-mtf','Post Matric MTF','పోస్ట్ మెట్రిక్ MTF','Maintenance charges reimbursement.', ARRAY['Aadhaar','Caste certificate','Income certificate','College admission proof','Hostel certificate (if applicable)','Bank passbook'], '{}'::jsonb),
+('ntr-vidyonnathi','NTR Vidyonnathi','ఎన్టీఆర్ విద్యోన్నతి','Free UPSC/APPSC coaching.', ARRAY['Aadhaar','Graduation certificate','Income certificate','Residence certificate','Passport photo'], '{}'::jsonb),
+('ambedkar-overseas','Ambedkar Overseas Vidya Nidhi','అంబేద్కర్ ఓవర్సీస్ విద్యా నిధి','Overseas education assistance.', ARRAY['Aadhaar','Caste certificate (SC/ST)','Foreign university admission letter','Income certificate','Passport','Bank passbook'], '{}'::jsonb),
+('pm-kisan','PM Kisan Samman Nidhi','పీఎం కిసాన్ సమ్మాన్ నిధి','₹6,000/year to farmers.', ARRAY['Aadhaar','Pattadar Passbook','Bank passbook','Mobile number (Aadhaar linked)'], '{}'::jsonb),
+('nethanna-bharosa','Nethanna Bharosa','నేతన్న భరోసా','₹25,000/year for weavers.', ARRAY['Aadhaar','Weaver identity card','Bank passbook','Residence certificate'], '{}'::jsonb),
+('adarana-3','Adarana 3.0','ఆదరణ 3.0','Free tools for artisans.', ARRAY['Aadhaar','Caste certificate','Ration card','Occupation proof','Residence certificate'], '{}'::jsonb),
+('ntr-arogya-seva','NTR Arogya Seva','ఎన్టీఆర్ ఆరోగ్య సేవ','Cashless health cover up to ₹25 lakh.', ARRAY['Aadhaar','Ration card (White / Yellow)','Hospital referral letter'], '{}'::jsonb),
+('sc-corp-loan','SC Corporation Loan','ఎస్సీ కార్పొరేషన్ రుణం','Subsidised loans for SC entrepreneurs.', ARRAY['Aadhaar','Caste certificate (SC)','Income certificate','Project report','Bank passbook'], '{}'::jsonb),
+('bc-corp-loan','BC Corporation Loan','బీసీ కార్పొరేషన్ రుణం','Subsidised loans for BC entrepreneurs.', ARRAY['Aadhaar','Caste certificate (BC)','Income certificate','Project report','Bank passbook'], '{}'::jsonb),
+('minority-shaadi-mubarak','Minority Shaadi Mubarak','మైనారిటీ షాదీ ముబారక్','Marriage assistance for minority brides.', ARRAY['Aadhaar (bride)','Minority religion proof','Marriage certificate / invitation','Income certificate','Bank passbook'], '{}'::jsonb)
+ON CONFLICT (id) DO NOTHING;
