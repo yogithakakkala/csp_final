@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { Wordmark } from './Logo';
 import { FullPageLoader, Sheet } from './ui';
 import AIChatbot from './AIChatbot';
+import PageReader from './PageReader';
 
 type NavItem = { to: string; en: string; te: string; Icon: ComponentType<{ className?: string }>; end?: boolean; badge?: boolean; auth?: boolean };
 
@@ -114,6 +115,7 @@ export default function AppShell() {
           })}
         </nav>
         <div className="space-y-2 border-t border-line p-3">
+          <PageReader variant="row" />
           <button onClick={toggle} className="flex h-10 w-full items-center justify-between rounded-[10px] px-3 text-sm font-medium text-ink/80 hover:bg-mist">
             <span>{tx('Language', 'భాష')}</span>
             <span className="rounded-full bg-ink-50 px-2.5 py-0.5 text-xs font-semibold">{lang === 'en' ? 'English → తెలుగు' : 'తెలుగు → English'}</span>
@@ -143,6 +145,7 @@ export default function AppShell() {
           <Wordmark className="[&_svg]:size-8" />
         </NavLink>
         <div className="flex shrink-0 items-center gap-1.5">
+          <PageReader />
           <button onClick={toggle} className="h-9 rounded-full border border-line px-3 text-sm font-semibold" aria-label="Change language">
             {lang === 'en' ? 'తెలుగు' : 'EN'}
           </button>

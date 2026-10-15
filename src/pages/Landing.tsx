@@ -5,6 +5,7 @@ import { getCatalog } from '@/lib/schemes';
 import { useLang } from '@/lib/i18n';
 import { LogoMark } from '@/components/Logo';
 import { ButtonLink } from '@/components/ui';
+import PageReader from '@/components/PageReader';
 
 export default function Landing() {
   const { lang, toggle, tx } = useLang();
@@ -24,7 +25,7 @@ export default function Landing() {
   ];
 
   return (
-    <div className="min-h-dvh bg-paper">
+    <div className="min-h-dvh bg-paper" data-read-root>
       {/* Hero */}
       <section className="relative overflow-hidden bg-ink text-white">
         <div className="muggu absolute inset-y-0 right-0 w-full opacity-40 [mask-image:linear-gradient(to_left,black,transparent_75%)] sm:w-2/3" aria-hidden />
@@ -35,6 +36,7 @@ export default function Landing() {
               <span className="display text-lg">SachiSeva</span>
             </span>
             <div className="flex items-center gap-2">
+              <PageReader className="border-white/25 text-white hover:border-white/50" />
               <button onClick={toggle} className="h-9 rounded-full border border-white/25 px-3.5 text-sm font-semibold hover:bg-white/10">
                 {lang === 'en' ? 'తెలుగు' : 'English'}
               </button>

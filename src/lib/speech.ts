@@ -21,21 +21,87 @@ export const isSpeechRecognitionSupported = () =>
   typeof window !== 'undefined' &&
   ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window);
 
+/** Voices load asynchronously on most browsers; this resolves once they are available. */
+function loadVoices(): Promise<SpeechSynthesisVoice[]> {
+  const synth = window.speechSynthesis;
+  const now = synth.getVoices();
+  if (now.length) return Promise.resolve(now);
+  return new Promise((resolve) => {
+    const done = () => resolve(synth.getVoices());
+    synth.addEventListener('voiceschanged', done, { once: true });
+    setTimeout(done, 1200);
+  });
+}
+
+function pickVoice(voices: SpeechSynthesisVoice[], lang: Lang) {
+  const want = lang === 'te' ? 'te' : 'en';
+  const match = voices.filter((v) => v.lang.toLowerCase().replace('_', '-').startsWith(want));
+  return match.find((v) => /-IN$/i.test(v.lang.replace('_', '-'))) ?? match[0];
+}
+
+/** True when the device has a voice for this language (Telugu voices are missing on some phones). */
+export async function hasVoiceFor(lang: Lang) {
+  if (!isSpeechSynthesisSupported()) return false;
+  const voices = await loadVoices();
+  return !voices.length || !!pickVoice(voices, lang);
+}
+
+/** Splits long text into short sentences: browsers cut off long utterances. */
+function chunks(text: string, max = 180): string[] {
+  const parts = text.replace(/\s+/g, ' ').trim().split(/(?<=[.!?।|:;])\s+/);
+  const out: string[] = [];
+  for (const part of parts) {
+    if (part.length <= max) { if (part) out.push(part); continue; }
+    let rest = part;
+    while (rest.length > max) {
+      const cut = rest.lastIndexOf(' ', max);
+      const at = cut > 40 ? cut : max;
+      out.push(rest.slice(0, at));
+      rest = rest.slice(at).trim();
+    }
+    if (rest) out.push(rest);
+  }
+  return out;
+}
+
+let session = 0;
+let current: (() => void) | undefined;
+const finish = () => { const cb = current; current = undefined; cb?.(); };
+
 export function speak(text: string, lang: Lang, onEnd?: () => void) {
-  if (!isSpeechSynthesisSupported() || !text) {
+  if (!isSpeechSynthesisSupported() || !text?.trim()) {
     onEnd?.();
     return;
   }
-  window.speechSynthesis.cancel();
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = lang === 'te' ? 'te-IN' : 'en-IN';
-  utterance.rate = 0.95;
-  if (onEnd) utterance.onend = onEnd;
-  window.speechSynthesis.speak(utterance);
+  const synth = window.speechSynthesis;
+  synth.cancel();
+  finish();
+  current = onEnd;
+  const id = ++session;
+  const queue = chunks(text);
+  void loadVoices().then((voices) => {
+    if (id !== session) return;
+    const voice = pickVoice(voices, lang);
+    const next = () => {
+      if (id !== session) return;
+      const piece = queue.shift();
+      if (!piece) { finish(); return; }
+      const u = new SpeechSynthesisUtterance(piece);
+      u.lang = voice?.lang ?? (lang === 'te' ? 'te-IN' : 'en-IN');
+      if (voice) u.voice = voice;
+      u.rate = 0.95;
+      u.onend = next;
+      u.onerror = () => { if (id === session) finish(); };
+      synth.speak(u);
+    };
+    next();
+  });
 }
 
 export function stopSpeaking() {
+  session++;
   if (isSpeechSynthesisSupported()) window.speechSynthesis.cancel();
+  finish();
 }
 
 export function createRecognizer(lang: Lang): Recognizer | null {
