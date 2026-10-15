@@ -21,7 +21,7 @@ interface Check {
   run: () => Promise<Result>;
 }
 
-const MIGRATION = 'Run supabase/migrations/20261014000000_vercel_hardening.sql in the Supabase SQL editor.';
+const MIGRATION = 'Run supabase/UPGRADE.sql once in the Supabase SQL editor (it contains every database update).';
 const ok = (detail: string): Result => ({ state: 'ok', detail });
 const warn = (detail: string, fix?: string): Result => ({ state: 'warn', detail, fix });
 const fail = (detail: string, fix?: string): Result => ({ state: 'fail', detail, fix });
@@ -185,7 +185,7 @@ function buildChecks(uid: string): Check[] {
         const r = (await fetch('/api/claim-staff').then((x) => x.json()).catch(() => null)) as { configured?: boolean } | null;
         return warn(
           'Database staff-key check missing',
-          `Run supabase/migrations/20261015010000_staff_key.sql.${r?.configured ? ' Until then the Vercel fallback is used.' : ''}`,
+          `Run supabase/UPGRADE.sql in the Supabase SQL editor.${r?.configured ? ' Until then the Vercel fallback is used.' : ''}`,
         );
       },
     },

@@ -110,7 +110,6 @@ export default function CenterMap({
       <TileLayer
         attribution={TILE_ATTRIBUTION}
         url={TILE_URL}
-        subdomains="abcd"
         maxZoom={19}
       />
       <Controller focus={focus} selected={selected} onMoved={onMoved} />

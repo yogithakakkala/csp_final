@@ -149,31 +149,33 @@ function writeLS(k: string, d: Center[]) {
   }
 }
 
+/**
+ * Asks every public Overpass server at once and uses the first good answer.
+ * (One at a time, a single slow server made the whole search time out.)
+ */
 async function overpassFetch(query: string, signal?: AbortSignal): Promise<OsmElement[]> {
-  let lastErr: unknown;
-  for (const endpoint of OVERPASS) {
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 22000);
-    const onAbort = () => ctrl.abort();
-    signal?.addEventListener('abort', onAbort);
-    try {
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        body: new URLSearchParams({ data: query }),
-        signal: ctrl.signal,
-      });
-      if (!res.ok) throw new Error(`Overpass ${res.status}`);
-      const json = (await res.json()) as { elements?: OsmElement[] };
-      return json.elements ?? [];
-    } catch (e) {
-      if (signal?.aborted) throw e;
-      lastErr = e;
-    } finally {
-      clearTimeout(timer);
-      signal?.removeEventListener('abort', onAbort);
-    }
+  const ctrl = new AbortController();
+  const onAbort = () => ctrl.abort(signal?.reason);
+  signal?.addEventListener('abort', onAbort);
+  const timer = setTimeout(() => ctrl.abort(new Error('The map search servers are busy — try again in a minute.')), 30000);
+  const tries = OVERPASS.map(async (endpoint) => {
+    const res = await fetch(endpoint, { method: 'POST', body: new URLSearchParams({ data: query }), signal: ctrl.signal });
+    if (!res.ok) throw new Error(`Overpass ${res.status}`);
+    const json = (await res.json()) as { elements?: OsmElement[]; remark?: string };
+    if (!json.elements) throw new Error(json.remark || 'Overpass returned no data');
+    return json.elements;
+  });
+  try {
+    return await Promise.any(tries);
+  } catch (e) {
+    if (signal?.aborted) throw signal.reason ?? e;
+    const reason = ctrl.signal.aborted ? ctrl.signal.reason : (e as AggregateError).errors?.[0];
+    throw reason instanceof Error ? reason : new Error('Map data unavailable');
+  } finally {
+    clearTimeout(timer);
+    ctrl.abort(); // stop the slower servers
+    signal?.removeEventListener('abort', onAbort);
   }
-  throw lastErr ?? new Error('Map data unavailable');
 }
 
 /** Live search of OpenStreetMap for Sachivalayams / MeeSeva centres around a point. */
@@ -309,8 +311,10 @@ export function formatDistance(km: number) {
   return km < 1 ? `${Math.round(km * 1000)} m` : `${km < 10 ? km.toFixed(1) : Math.round(km)} km`;
 }
 
-export const TILE_URL = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
-export const TILE_ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>';
+// OpenStreetMap's own tiles: free, no API key. (CARTO's basemaps now need a key.)
+// Set VITE_MAP_TILE_URL to use another provider, e.g. a keyed MapTiler / Stadia URL.
+export const TILE_URL = (import.meta.env.VITE_MAP_TILE_URL as string | undefined)?.trim() || 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+export const TILE_ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
 
 export function withDistance(list: Center[], from: LatLng | null): Center[] {
   if (!from) return list.map((c) => ({ ...c, distanceKm: null }));
