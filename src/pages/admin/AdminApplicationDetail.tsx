@@ -10,6 +10,23 @@ import { openFile, timeLabel } from '@/lib/files';
 import { cn } from '@/lib/utils';
 import type { Application, ApplicationMessage, ApplicationStatus } from '@/types';
 
+// Shown in the "Ask for a document" dropdown after the scheme's own documents.
+const COMMON_DOCS = [
+  'Aadhaar card',
+  'Rice card (white / BPL)',
+  'Income certificate',
+  'Caste certificate',
+  'Residence certificate',
+  'Bank passbook (account linked to Aadhaar)',
+  'Passport-size photo',
+  'Birth certificate',
+  'Age proof (SSC memo / birth certificate)',
+  'Land records / pattadar passbook',
+  'Disability (SADAREM) certificate',
+  'Death certificate',
+];
+const OTHER = '__other__';
+
 const STATUSES: ApplicationStatus[] = ['submitted', 'under_review', 'documents_requested', 'approved', 'rejected'];
 
 export default function AdminApplicationDetail() {
@@ -18,7 +35,9 @@ export default function AdminApplicationDetail() {
   const [app, setApp] = useState<Application | null | undefined>(undefined);
   const [messages, setMessages] = useState<ApplicationMessage[]>([]);
   const [text, setText] = useState('');
-  const [doc, setDoc] = useState('');
+  const [docChoice, setDocChoice] = useState('');
+  const [otherDoc, setOtherDoc] = useState('');
+  const doc = docChoice === OTHER ? otherDoc : docChoice;
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState<string | null>(null);
   const [typing, setTyping] = useState(false);
@@ -108,7 +127,8 @@ export default function AdminApplicationDetail() {
         if (error) throw error;
         setApp({ ...app, status: 'documents_requested' });
       }
-      setDoc('');
+      setDocChoice('');
+      setOtherDoc('');
       setNote('');
       toast.success(tx('Request sent to the citizen', 'పౌరుడికి అభ్యర్థన పంపబడింది'));
     } catch (err) {
@@ -241,12 +261,31 @@ export default function AdminApplicationDetail() {
             <form onSubmit={requestDoc} className="space-y-3">
               <p className="font-semibold">{tx('Ask for a document', 'పత్రం అడగండి')}</p>
               <Field label={tx('Document', 'పత్రం')} htmlFor="doc">
-                <Input id="doc" list="doc-suggest" value={doc} onChange={(e) => setDoc(e.target.value)} placeholder={tx('e.g. Income certificate (2026)', 'ఉదా. ఆదాయ ధృవపత్రం (2026)')} />
-                <datalist id="doc-suggest">
-                  {(app.scheme?.required_documents ?? []).map((r) => (
-                    <option key={r} value={r} />
-                  ))}
-                </datalist>
+                <Select id="doc" value={docChoice} onChange={(e) => setDocChoice(e.target.value)}>
+                  <option value="" disabled>
+                    {tx('Choose a document…', 'పత్రం ఎంచుకోండి…')}
+                  </option>
+                  {(app.scheme?.required_documents ?? []).length > 0 && (
+                    <optgroup label={tx('Needed for this scheme', 'ఈ పథకానికి కావలసినవి')}>
+                      {(app.scheme?.required_documents ?? []).map((r) => (
+                        <option key={r} value={r}>
+                          {r}
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
+                  <optgroup label={tx('Other common documents', 'ఇతర సాధారణ పత్రాలు')}>
+                    {COMMON_DOCS.filter((c) => !(app.scheme?.required_documents ?? []).some((r) => r.toLowerCase() === c.toLowerCase())).map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                  </optgroup>
+                  <option value={OTHER}>{tx('Other (type the name)', 'ఇతర (పేరు టైప్ చేయండి)')}</option>
+                </Select>
+                {docChoice === OTHER && (
+                  <Input className="mt-2" autoFocus value={otherDoc} onChange={(e) => setOtherDoc(e.target.value)} placeholder={tx('e.g. Income certificate (2026)', 'ఉదా. ఆదాయ ధృవపత్రం (2026)')} aria-label={tx('Document name', 'పత్రం పేరు')} />
+                )}
               </Field>
               <Field label={tx('Note to citizen (optional)', 'పౌరుడికి గమనిక (ఐచ్ఛికం)')} htmlFor="note">
                 <Input id="note" value={note} onChange={(e) => setNote(e.target.value)} />

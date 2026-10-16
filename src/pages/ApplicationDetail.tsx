@@ -12,6 +12,9 @@ import { cn } from '@/lib/utils';
 import { openFile, timeLabel } from '@/lib/files';
 import type { Application, ApplicationMessage } from '@/types';
 
+/** Files the citizen sends without being asked are stored under this name. */
+const ATTACHMENT = 'Extra document';
+
 export default function ApplicationDetail() {
   const { applicationId = '' } = useParams();
   const { lang, tx } = useLang();
@@ -21,7 +24,7 @@ export default function ApplicationDetail() {
   const [messages, setMessages] = useState<ApplicationMessage[]>([]);
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
-  const [uploading, setUploading] = useState(false);
+  const [uploading, setUploading] = useState<string | null>(null); // which document is uploading
   const [staffTyping, setStaffTyping] = useState(false);
   const bottom = useRef<HTMLDivElement>(null);
   const channel = useRef<ReturnType<typeof supabase.channel> | null>(null);
@@ -71,13 +74,15 @@ export default function ApplicationDetail() {
     bottom.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }, [messages.length, staffTyping]);
 
+  // Every document staff asked for that the citizen hasn't sent yet (latest request per document).
   const pending = useMemo(() => {
-    if (app?.status !== 'documents_requested') return null;
-    const req = [...messages].reverse().find((m) => m.is_document_request && m.requested_document_type);
-    if (!req) return null;
-    const after = messages.some((m) => m.sender_type === 'user' && m.file_url && m.created_at > req.created_at);
-    return after ? null : req;
-  }, [messages, app?.status]);
+    if (!app || app.status === 'approved' || app.status === 'rejected') return [];
+    const latest = new Map<string, ApplicationMessage>();
+    for (const m of messages) if (m.is_document_request && m.requested_document_type) latest.set(m.requested_document_type, m);
+    return [...latest.values()].filter(
+      (req) => !messages.some((m) => m.sender_type === 'user' && m.file_url && m.created_at > req.created_at && (m.message ?? '').endsWith(`: ${req.requested_document_type}`)),
+    );
+  }, [messages, app]);
 
   const send = async () => {
     const body = text.trim();
@@ -90,10 +95,10 @@ export default function ApplicationDetail() {
     setMessages((l) => (l.some((x) => x.id === (data as ApplicationMessage).id) ? l : [...l, data as ApplicationMessage]));
   };
 
-  const upload = async (docType: string, file: File) => {
+  const upload = async (docType: string, file: File, caption?: string) => {
     if (!user || !app) return;
     if (file.size > MAX_UPLOAD_MB * 1024 * 1024) return toast.error(tx(`File is over ${MAX_UPLOAD_MB} MB`, `ఫైల్ ${MAX_UPLOAD_MB} MB కంటే పెద్దది`));
-    setUploading(true);
+    setUploading(docType);
     try {
       const path = `${user.id}/${app.scheme_id}/${slug(docType)}-${safeStorageName(file.name)}`;
       const { error } = await supabase.storage.from('applications').upload(path, file, { upsert: true, contentType: file.type || undefined });
@@ -102,7 +107,7 @@ export default function ApplicationDetail() {
       if (rpc.error) throw rpc.error;
       const { data } = await supabase
         .from('application_messages')
-        .insert({ application_id: app.id, sender_type: 'user', message: `${tx('Uploaded', 'అప్‌లోడ్ చేశాను')}: ${docType}`, file_url: path })
+        .insert({ application_id: app.id, sender_type: 'user', message: `${caption ? `${caption}\n` : ''}${tx('Uploaded', 'అప్‌లోడ్ చేశాను')}: ${docType}`, file_url: path })
         .select()
         .single();
       if (data) setMessages((l) => [...l, data as ApplicationMessage]);
@@ -111,7 +116,7 @@ export default function ApplicationDetail() {
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
-      setUploading(false);
+      setUploading(null);
     }
   };
 
@@ -160,29 +165,43 @@ export default function ApplicationDetail() {
         </div>
       </div>
 
-      {pending && (
+      {pending.length > 0 && (
         <div className="rounded-[18px] border-2 border-turmeric bg-turmeric-50 p-5">
           <div className="flex items-start gap-3">
             <AlertTriangle className="mt-0.5 size-6 shrink-0 text-turmeric-deep" />
             <div className="min-w-0 flex-1">
-              <p className="font-semibold">{tx('Staff need this document from you', 'సిబ్బందికి ఈ పత్రం కావాలి')}</p>
-              <p className="mt-1 text-lg font-semibold">{pending.requested_document_type}</p>
-              {pending.message && <p className="mt-1 text-[15px] text-muted">“{pending.message}”</p>}
-              <label className="mt-4 inline-flex h-11 cursor-pointer items-center gap-2 rounded-[12px] bg-ink px-5 font-semibold text-white">
-                {uploading ? <Loader2 className="size-4 animate-spin" /> : <Camera className="size-4" />}
-                {uploading ? tx('Uploading…', 'అప్‌లోడ్ అవుతోంది…') : tx('Upload document', 'పత్రం అప్‌లోడ్ చేయండి')}
-                <input
-                  type="file"
-                  accept="image/*,application/pdf"
-                  className="sr-only"
-                  disabled={uploading}
-                  onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    e.target.value = '';
-                    if (f) void upload(pending.requested_document_type!, f);
-                  }}
-                />
-              </label>
+              <p className="font-semibold">
+                {pending.length === 1 ? tx('Staff need this document from you', 'సిబ్బందికి ఈ పత్రం కావాలి') : tx(`Staff need ${pending.length} documents from you`, `సిబ్బందికి మీ నుండి ${pending.length} పత్రాలు కావాలి`)}
+              </p>
+              <ul className="mt-3 space-y-3">
+                {pending.map((req) => {
+                  const docType = req.requested_document_type!;
+                  const busyHere = uploading === docType;
+                  return (
+                    <li key={req.id} className="flex flex-wrap items-center gap-3 rounded-[14px] bg-paper p-3 ring-1 ring-turmeric/40">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-semibold">{docType}</p>
+                        {req.message && <p className="mt-0.5 text-sm text-muted">“{req.message}”</p>}
+                      </div>
+                      <label className={cn('inline-flex h-11 shrink-0 cursor-pointer items-center gap-2 rounded-[12px] bg-ink px-4 font-semibold text-white', uploading && !busyHere && 'pointer-events-none opacity-50')}>
+                        {busyHere ? <Loader2 className="size-4 animate-spin" /> : <Camera className="size-4" />}
+                        {busyHere ? tx('Uploading…', 'అప్‌లోడ్ అవుతోంది…') : tx('Upload', 'అప్‌లోడ్')}
+                        <input
+                          type="file"
+                          accept="image/*,application/pdf"
+                          className="sr-only"
+                          disabled={!!uploading}
+                          onChange={(e) => {
+                            const f = e.target.files?.[0];
+                            e.target.value = '';
+                            if (f) void upload(docType, f);
+                          }}
+                        />
+                      </label>
+                    </li>
+                  );
+                })}
+              </ul>
             </div>
           </div>
         </div>
@@ -236,6 +255,27 @@ export default function ApplicationDetail() {
             }}
             className="flex items-center gap-2 border-t border-line p-3"
           >
+            <label
+              className={cn('grid size-11 shrink-0 cursor-pointer place-items-center rounded-full border border-line text-ink hover:border-ink/30', uploading && 'pointer-events-none opacity-50')}
+              aria-label={tx('Attach a photo or PDF', 'ఫోటో లేదా PDF జోడించండి')}
+              title={tx('Attach a photo or PDF', 'ఫోటో లేదా PDF జోడించండి')}
+            >
+              {uploading?.startsWith(ATTACHMENT) ? <Loader2 className="size-[18px] animate-spin" /> : <Paperclip className="size-[18px]" />}
+              <input
+                type="file"
+                accept="image/*,application/pdf"
+                className="sr-only"
+                disabled={!!uploading}
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  e.target.value = '';
+                  if (!f) return;
+                  const caption = text.trim();
+                  setText('');
+                  void upload(`${ATTACHMENT} — ${f.name.replace(/\.[^.]+$/, '')}`, f, caption || undefined);
+                }}
+              />
+            </label>
             <input
               value={text}
               onChange={(e) => {
