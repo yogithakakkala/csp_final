@@ -168,6 +168,9 @@ select pg_temp.check((select status = 'resolved' from public.grievances), 'staff
 update public.applications set status = 'approved';
 select pg_temp.check((select status = 'approved' from public.applications), 'staff approve application');
 select pg_temp.check((select count(*) = 1 from public.application_messages where sender_type = 'staff' and message like 'Your application is approved. Please visit your nearby Sachivalayam%'), 'approval sends the applicant a message to visit the Sachivalayam');
+update public.applications set status = 'rejected';
+select pg_temp.check((select count(*) = 1 from public.application_messages where sender_type = 'staff' and message like 'Your application was not approved. Please visit your nearby Sachivalayam%'), 'rejection sends the applicant a message to visit the Sachivalayam');
+update public.applications set status = 'approved';
 
 -- centres: crowd level, add, edit
 update public.sachivalayam_centers set busy_level = 'low', busy_updated_at = now(), busy_note = 'Quiet' where id = (select id from public.sachivalayam_centers limit 1);

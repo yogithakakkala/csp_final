@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
-import { ArrowLeft, FileText, Loader2, Paperclip, Send, Share2 } from 'lucide-react';
+import { ArrowLeft, Check, FileText, Loader2, Paperclip, Send, Share2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useLang } from '@/lib/i18n';
 import { Timeline, schemeLabel } from '@/components/ApplicationBits';
@@ -25,7 +25,6 @@ const COMMON_DOCS = [
   'Disability (SADAREM) certificate',
   'Death certificate',
 ];
-const OTHER = '__other__';
 
 const STATUSES: ApplicationStatus[] = ['submitted', 'under_review', 'documents_requested', 'approved', 'rejected'];
 
@@ -35,9 +34,11 @@ export default function AdminApplicationDetail() {
   const [app, setApp] = useState<Application | null | undefined>(undefined);
   const [messages, setMessages] = useState<ApplicationMessage[]>([]);
   const [text, setText] = useState('');
-  const [docChoice, setDocChoice] = useState('');
+  const [picked, setPicked] = useState<string[]>([]);
+  const [otherOn, setOtherOn] = useState(false);
   const [otherDoc, setOtherDoc] = useState('');
-  const doc = docChoice === OTHER ? otherDoc : docChoice;
+  const docs = [...picked, ...(otherOn && otherDoc.trim() ? [otherDoc.trim()] : [])];
+  const togglePick = (d: string) => setPicked((l) => (l.includes(d) ? l.filter((x) => x !== d) : [...l, d]));
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState<string | null>(null);
   const [typing, setTyping] = useState(false);
@@ -118,19 +119,21 @@ export default function AdminApplicationDetail() {
 
   const requestDoc = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!doc.trim() || !app) return;
+    if (!docs.length || !app) return;
     setBusy('doc');
     try {
-      await post({ message: note.trim() || null, is_document_request: true, requested_document_type: doc.trim() });
+      // One request per document, so the citizen gets a separate Upload button for each.
+      for (const d of docs) await post({ message: note.trim() || null, is_document_request: true, requested_document_type: d });
       if (app.status !== 'documents_requested') {
         const { error } = await supabase.from('applications').update({ status: 'documents_requested' }).eq('id', app.id);
         if (error) throw error;
         setApp({ ...app, status: 'documents_requested' });
       }
-      setDocChoice('');
+      setPicked([]);
+      setOtherOn(false);
       setOtherDoc('');
       setNote('');
-      toast.success(tx('Request sent to the citizen', 'పౌరుడికి అభ్యర్థన పంపబడింది'));
+      toast.success(docs.length > 1 ? tx(`${docs.length} documents requested`, `${docs.length} పత్రాలు అడిగారు`) : tx('Request sent to the citizen', 'పౌరుడికి అభ్యర్థన పంపబడింది'));
     } catch (err) {
       toast.error((err as Error).message);
     } finally {
@@ -260,38 +263,46 @@ export default function AdminApplicationDetail() {
           <Card className="p-5">
             <form onSubmit={requestDoc} className="space-y-3">
               <p className="font-semibold">{tx('Ask for a document', 'పత్రం అడగండి')}</p>
-              <Field label={tx('Document', 'పత్రం')} htmlFor="doc">
-                <Select id="doc" value={docChoice} onChange={(e) => setDocChoice(e.target.value)}>
-                  <option value="" disabled>
-                    {tx('Choose a document…', 'పత్రం ఎంచుకోండి…')}
-                  </option>
-                  {(app.scheme?.required_documents ?? []).length > 0 && (
-                    <optgroup label={tx('Needed for this scheme', 'ఈ పథకానికి కావలసినవి')}>
-                      {(app.scheme?.required_documents ?? []).map((r) => (
-                        <option key={r} value={r}>
-                          {r}
-                        </option>
-                      ))}
-                    </optgroup>
-                  )}
-                  <optgroup label={tx('Other common documents', 'ఇతర సాధారణ పత్రాలు')}>
-                    {COMMON_DOCS.filter((c) => !(app.scheme?.required_documents ?? []).some((r) => r.toLowerCase() === c.toLowerCase())).map((c) => (
-                      <option key={c} value={c}>
-                        {c}
-                      </option>
+              <fieldset>
+                <legend className="mb-2 text-sm font-semibold text-ink">{tx('Documents — tick all you need', 'పత్రాలు — కావలసినవన్నీ టిక్ చేయండి')}</legend>
+                <div className="max-h-[300px] space-y-3 overflow-y-auto rounded-[12px] border border-line p-2">
+                  {[
+                    [tx('Needed for this scheme', 'ఈ పథకానికి కావలసినవి'), app.scheme?.required_documents ?? []] as const,
+                    [tx('Other common documents', 'ఇతర సాధారణ పత్రాలు'), COMMON_DOCS.filter((c) => !(app.scheme?.required_documents ?? []).some((r) => r.toLowerCase() === c.toLowerCase()))] as const,
+                  ]
+                    .filter(([, list]) => list.length > 0)
+                    .map(([title, list]) => (
+                      <div key={title}>
+                        <p className="px-1 pb-1 text-xs font-semibold text-muted">{title}</p>
+                        <div className="space-y-1">
+                          {list.map((d) => {
+                            const on = picked.includes(d);
+                            return (
+                              <label key={d} className={cn('flex cursor-pointer items-center gap-2.5 rounded-[10px] px-2 py-2 text-[15px]', on ? 'bg-ink-50 font-semibold' : 'hover:bg-mist')}>
+                                <input type="checkbox" className="sr-only" checked={on} onChange={() => togglePick(d)} />
+                                <span className={cn('grid size-5 shrink-0 place-items-center rounded-[6px] border-2', on ? 'border-ink bg-ink text-white' : 'border-line bg-paper')}>{on && <Check className="size-3.5" />}</span>
+                                <span className="leading-snug">{d}</span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </div>
                     ))}
-                  </optgroup>
-                  <option value={OTHER}>{tx('Other (type the name)', 'ఇతర (పేరు టైప్ చేయండి)')}</option>
-                </Select>
-                {docChoice === OTHER && (
-                  <Input className="mt-2" autoFocus value={otherDoc} onChange={(e) => setOtherDoc(e.target.value)} placeholder={tx('e.g. Income certificate (2026)', 'ఉదా. ఆదాయ ధృవపత్రం (2026)')} aria-label={tx('Document name', 'పత్రం పేరు')} />
+                  <label className={cn('flex cursor-pointer items-center gap-2.5 rounded-[10px] px-2 py-2 text-[15px]', otherOn ? 'bg-ink-50 font-semibold' : 'hover:bg-mist')}>
+                    <input type="checkbox" className="sr-only" checked={otherOn} onChange={() => setOtherOn((v) => !v)} />
+                    <span className={cn('grid size-5 shrink-0 place-items-center rounded-[6px] border-2', otherOn ? 'border-ink bg-ink text-white' : 'border-line bg-paper')}>{otherOn && <Check className="size-3.5" />}</span>
+                    {tx('Other (type the name)', 'ఇతర (పేరు టైప్ చేయండి)')}
+                  </label>
+                </div>
+                {otherOn && (
+                  <Input className="mt-2" autoFocus value={otherDoc} onChange={(e) => setOtherDoc(e.target.value)} placeholder={tx('e.g. Electricity bill (latest)', 'ఉదా. విద్యుత్ బిల్లు (తాజా)')} aria-label={tx('Document name', 'పత్రం పేరు')} />
                 )}
-              </Field>
+              </fieldset>
               <Field label={tx('Note to citizen (optional)', 'పౌరుడికి గమనిక (ఐచ్ఛికం)')} htmlFor="note">
                 <Input id="note" value={note} onChange={(e) => setNote(e.target.value)} />
               </Field>
-              <Button type="submit" className="w-full" loading={busy === 'doc'} disabled={!doc.trim()}>
-                {tx('Send request', 'అభ్యర్థన పంపు')}
+              <Button type="submit" className="w-full" loading={busy === 'doc'} disabled={!docs.length}>
+                {docs.length > 1 ? tx(`Ask for ${docs.length} documents`, `${docs.length} పత్రాలు అడగండి`) : tx('Send request', 'అభ్యర్థన పంపు')}
               </Button>
             </form>
           </Card>

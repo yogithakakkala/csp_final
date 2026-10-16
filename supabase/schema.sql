@@ -1150,13 +1150,14 @@ returns trigger language plpgsql security definer set search_path = public as $$
 begin
   if new.status = 'approved' and old.status is distinct from 'approved' then
     insert into public.application_messages (application_id, sender_type, message)
-    values (
-      new.id, 'staff',
-      format(
-        E'Your application is approved. Please visit your nearby Sachivalayam with your original documents and this application number (%s). Staff will guide you on the next steps.\nమీ దరఖాస్తు ఆమోదించబడింది. మీ అసలు పత్రాలు, ఈ దరఖాస్తు నంబర్ (%s)తో మీ సమీప సచివాలయానికి రండి. తదుపరి చర్యల గురించి సిబ్బంది మీకు వివరిస్తారు.',
-        coalesce(new.token_number, ''), coalesce(new.token_number, '')
-      )
-    );
+    values (new.id, 'staff', format(
+      E'Your application is approved. Please visit your nearby Sachivalayam with your original documents and this application number (%s). Staff will guide you on the next steps.\nమీ దరఖాస్తు ఆమోదించబడింది. మీ అసలు పత్రాలు, ఈ దరఖాస్తు నంబర్ (%s)తో మీ సమీప సచివాలయానికి రండి. తదుపరి చర్యల గురించి సిబ్బంది మీకు వివరిస్తారు.',
+      coalesce(new.token_number, ''), coalesce(new.token_number, '')));
+  elsif new.status = 'rejected' and old.status is distinct from 'rejected' then
+    insert into public.application_messages (application_id, sender_type, message)
+    values (new.id, 'staff', format(
+      E'Your application was not approved. Please visit your nearby Sachivalayam with this application number (%s). Staff will explain the reason and what you can do next.\nమీ దరఖాస్తు ఆమోదించబడలేదు. ఈ దరఖాస్తు నంబర్ (%s)తో మీ సమీప సచివాలయానికి రండి. కారణం, తర్వాత ఏమి చేయాలో సిబ్బంది వివరిస్తారు.',
+      coalesce(new.token_number, ''), coalesce(new.token_number, '')));
   end if;
   return new;
 end $$;
@@ -1181,7 +1182,7 @@ begin
       when 'under_review' then 'Under review'
       when 'documents_requested' then 'Documents needed'
       when 'approved' then 'Approved — please visit your nearby Sachivalayam with your original documents; staff will guide you on the next steps'
-      when 'rejected' then 'Rejected'
+      when 'rejected' then 'Not approved — please visit your nearby Sachivalayam; staff will explain the reason and what you can do next'
       else replace(new.status, '_', ' ') end;
     perform public.send_email(
       _email,
