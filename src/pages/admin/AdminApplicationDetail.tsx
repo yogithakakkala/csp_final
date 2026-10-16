@@ -1,17 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
-import { ArrowLeft, Check, FileText, Loader2, Paperclip, Send, Share2 } from 'lucide-react';
+import { ArrowLeft, FileText, Loader2, Paperclip, Send, Share2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useLang } from '@/lib/i18n';
 import { Timeline, schemeLabel } from '@/components/ApplicationBits';
-import { Button, Card, Field, FullPageLoader, Input, Notice, STATUS_META, StatusBadge } from '@/components/ui';
+import { Button, Card, Field, FullPageLoader, Input, Notice, Select, STATUS_META } from '@/components/ui';
 import { openFile, timeLabel } from '@/lib/files';
 import { cn } from '@/lib/utils';
 import type { Application, ApplicationMessage, ApplicationStatus } from '@/types';
 
-// The statuses staff can set by hand, in the order they usually happen.
-const STAFF_STATUSES: ApplicationStatus[] = ['under_review', 'documents_requested', 'visit_required', 'approved', 'rejected'];
+const STATUSES: ApplicationStatus[] = ['submitted', 'under_review', 'documents_requested', 'approved', 'rejected'];
 
 export default function AdminApplicationDetail() {
   const { applicationId = '' } = useParams();
@@ -82,24 +81,7 @@ export default function AdminApplicationDetail() {
     setBusy(null);
     if (error) return toast.error(error.message);
     setApp({ ...app, status: s });
-    if (s === 'visit_required') {
-      // Tell the citizen exactly what to do.
-      await post({
-        message:
-          'Please visit your Sachivalayam with your original documents so that we can verify them. Bring this application number: ' +
-          (app.token_number ?? '') +
-          '.\nమీ పత్రాల ధృవీకరణ కోసం అసలు పత్రాలతో మీ సచివాలయానికి రండి. ఈ దరఖాస్తు నంబర్ తీసుకురండి: ' +
-          (app.token_number ?? '') +
-          '.',
-      }).catch(() => {});
-    }
-    toast.success(
-      s === 'documents_requested'
-        ? tx('Status set to Documents needed. Use “Ask for a document” to say which one.', 'స్థితి: పత్రాలు కావాలి. ఏ పత్రమో “పత్రం అడగండి”లో తెలపండి.')
-        : s === 'visit_required'
-          ? tx('Citizen asked to visit the Sachivalayam — a message was sent.', 'సచివాలయానికి రమ్మని పౌరుడికి సందేశం పంపబడింది.')
-          : tx('Status updated', 'స్థితి మార్చబడింది'),
-    );
+    toast.success(tx('Status updated', 'స్థితి మార్చబడింది'));
   };
 
   const send = async () => {
@@ -166,41 +148,29 @@ export default function AdminApplicationDetail() {
               {schemeLabel(app, lang)} · {app.token_number}
             </p>
           </div>
-          <StatusBadge status={app.status} lang={lang} />
-        </div>
-
-        {/* Status: always visible, one tap to change */}
-        <Card className="mt-4 p-4">
-          <p className="text-sm font-semibold text-muted">{tx('Set application status', 'దరఖాస్తు స్థితి మార్చండి')}</p>
-          <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5" role="radiogroup" aria-label={tx('Set application status', 'దరఖాస్తు స్థితి మార్చండి')}>
-            {STAFF_STATUSES.map((st) => {
-              const m = STATUS_META[st];
-              const on = app.status === st;
-              return (
-                <button
-                  key={st}
-                  role="radio"
-                  aria-checked={on}
-                  disabled={busy === 'status'}
-                  onClick={() => setStatus(st)}
-                  className={cn(
-                    'flex min-h-12 items-center gap-2 rounded-[12px] px-3 py-2 text-left text-sm font-semibold ring-1 transition-colors disabled:opacity-60',
-                    on ? `${m.cls} ring-2 ring-current` : 'bg-paper text-ink ring-line hover:ring-ink/30',
-                    st === 'visit_required' && 'col-span-2 sm:col-span-1',
-                  )}
-                >
-                  <span className={cn('grid size-5 shrink-0 place-items-center rounded-full', on ? 'bg-current' : `border-2 border-line`)}>
-                    {on ? <Check className="size-3 text-white" /> : <span className={cn('size-2 rounded-full', m.dot)} />}
-                  </span>
-                  <span className="leading-tight">{lang === 'te' ? m.te : m.en}</span>
-                </button>
-              );
-            })}
+          <div className="flex items-center gap-2">
+            <Select value={app.status} onChange={(e) => setStatus(e.target.value as ApplicationStatus)} disabled={busy === 'status'} className="h-10 w-auto min-w-[190px] text-sm font-semibold" aria-label={tx('Change status', 'స్థితి మార్చండి')}>
+              {STATUSES.map((s) => (
+                <option key={s} value={s}>{lang === 'te' ? STATUS_META[s].te : STATUS_META[s].en}</option>
+              ))}
+            </Select>
           </div>
-          {app.status === 'submitted' && (
-            <p className="mt-3 text-sm text-muted">{tx('New application — choose “Under review” when you start checking it.', 'కొత్త దరఖాస్తు — పరిశీలన మొదలుపెట్టినప్పుడు “సమీక్షలో ఉంది” ఎంచుకోండి.')}</p>
-          )}
-        </Card>
+        </div>
+        {(app.status === 'submitted' || app.status === 'under_review') && (
+          <div className="mt-4 flex flex-wrap gap-2">
+            {app.status === 'submitted' && (
+              <Button variant="outline" size="sm" onClick={() => setStatus('under_review')}>
+                {tx('Start review', 'సమీక్ష ప్రారంభించు')}
+              </Button>
+            )}
+            <Button variant="success" size="sm" onClick={() => setStatus('approved')}>
+              {tx('Approve', 'ఆమోదించు')}
+            </Button>
+            <Button variant="outline" size="sm" className="border-kumkum/30 text-kumkum" onClick={() => setStatus('rejected')}>
+              {tx('Reject', 'తిరస్కరించు')}
+            </Button>
+          </div>
+        )}
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">

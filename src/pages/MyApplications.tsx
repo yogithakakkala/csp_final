@@ -153,11 +153,6 @@ export default function MyApplications() {
                   </div>
                   <ChevronRight className="size-5 shrink-0 text-muted" />
                 </Link>
-                {a.status === 'visit_required' && (
-                  <Link to="/nearest-center?near=1" className="block border-t border-[#7a44c9]/30 bg-[#f6f1fd] px-5 py-2.5 text-sm font-semibold text-[#5b2a9e]">
-                    {tx('Visit your Sachivalayam with original documents — tap to find it', 'అసలు పత్రాలతో మీ సచివాలయానికి వెళ్లండి — కనుగొనడానికి నొక్కండి')}
-                  </Link>
-                )}
                 {a.status === 'documents_requested' && (
                   <Link to={`/my-applications/${a.id}`} className="block border-t border-turmeric/40 bg-turmeric-50 px-5 py-2.5 text-sm font-semibold">
                     {tx('Staff asked for a document — tap to upload', 'సిబ్బంది పత్రం అడిగారు — అప్‌లోడ్ చేయడానికి నొక్కండి')}

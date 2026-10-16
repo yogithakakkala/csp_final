@@ -149,10 +149,6 @@ update public.applications set status = 'documents_requested';
 select pg_temp.check((select changed_by_staff and document_requested = 'Ration card (White / Yellow)' from public.application_status_history where status = 'documents_requested'), 'timeline records staff action and requested document');
 update public.applications set status = 'under_review';
 select pg_temp.check((select count(*) = 3 from public.application_status_history), 'each status change adds a timeline step');
-update public.applications set status = 'visit_required';
-select pg_temp.check((select status = 'visit_required' from public.applications), 'staff ask the citizen to visit the Sachivalayam to verify');
-select pg_temp.check((select count(*) = 1 from public.application_status_history where status = 'visit_required' and changed_by_staff), 'visit request appears on the timeline');
-update public.applications set status = 'under_review';
 
 -- citizen uploads the requested document through the RPC
 select pg_temp.act('aaaaaaaa-0000-0000-0000-000000000001');
@@ -171,6 +167,7 @@ update public.grievances set status = 'resolved', resolved_at = now(), admin_res
 select pg_temp.check((select status = 'resolved' from public.grievances), 'staff acknowledge and resolve grievance');
 update public.applications set status = 'approved';
 select pg_temp.check((select status = 'approved' from public.applications), 'staff approve application');
+select pg_temp.check((select count(*) = 1 from public.application_messages where sender_type = 'staff' and message like 'Your application is approved. Please visit your nearby Sachivalayam%'), 'approval sends the applicant a message to visit the Sachivalayam');
 
 -- centres: crowd level, add, edit
 update public.sachivalayam_centers set busy_level = 'low', busy_updated_at = now(), busy_note = 'Quiet' where id = (select id from public.sachivalayam_centers limit 1);

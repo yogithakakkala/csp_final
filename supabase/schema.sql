@@ -1143,7 +1143,29 @@ grant execute on function public.lookup_certificate_by_token(text) to authentica
 
 alter table public.applications drop constraint if exists applications_status_check;
 alter table public.applications add constraint applications_status_check
-  check (status in ('submitted','under_review','documents_requested','visit_required','approved','rejected'));
+  check (status in ('submitted','under_review','documents_requested','approved','rejected'));
+
+create or replace function public.message_on_approval()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if new.status = 'approved' and old.status is distinct from 'approved' then
+    insert into public.application_messages (application_id, sender_type, message)
+    values (
+      new.id, 'staff',
+      format(
+        E'Your application is approved. Please visit your nearby Sachivalayam with your original documents and this application number (%s). Staff will guide you on the next steps.\nమీ దరఖాస్తు ఆమోదించబడింది. మీ అసలు పత్రాలు, ఈ దరఖాస్తు నంబర్ (%s)తో మీ సమీప సచివాలయానికి రండి. తదుపరి చర్యల గురించి సిబ్బంది మీకు వివరిస్తారు.',
+        coalesce(new.token_number, ''), coalesce(new.token_number, '')
+      )
+    );
+  end if;
+  return new;
+end $$;
+revoke execute on function public.message_on_approval() from public, anon, authenticated;
+
+drop trigger if exists trg_message_on_approval on public.applications;
+create trigger trg_message_on_approval
+  after update of status on public.applications
+  for each row execute function public.message_on_approval();
 
 create or replace function public.notify_application_status_change()
 returns trigger language plpgsql security definer set search_path = public as $$
@@ -1158,8 +1180,7 @@ begin
     _label := case new.status
       when 'under_review' then 'Under review'
       when 'documents_requested' then 'Documents needed'
-      when 'visit_required' then 'Please visit your Sachivalayam with your original documents for verification'
-      when 'approved' then 'Approved'
+      when 'approved' then 'Approved — please visit your nearby Sachivalayam with your original documents; staff will guide you on the next steps'
       when 'rejected' then 'Rejected'
       else replace(new.status, '_', ' ') end;
     perform public.send_email(

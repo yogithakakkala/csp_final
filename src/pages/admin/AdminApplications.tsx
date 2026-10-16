@@ -8,7 +8,7 @@ import { EmptyState, ListSkeleton, PageHeader, StatusBadge, Tabs, STATUS_META } 
 import { daysSince, schemeLabel } from '@/components/ApplicationBits';
 import type { Application, ApplicationStatus } from '@/types';
 
-const STATUSES: ApplicationStatus[] = ['submitted', 'under_review', 'documents_requested', 'visit_required', 'approved', 'rejected'];
+const STATUSES: ApplicationStatus[] = ['submitted', 'under_review', 'documents_requested', 'approved', 'rejected'];
 const SELECT = '*, scheme:schemes(name, name_telugu), profile:profiles(full_name, email)';
 
 export default function AdminApplications() {

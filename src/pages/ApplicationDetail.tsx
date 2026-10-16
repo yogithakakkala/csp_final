@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
-import { AlertTriangle, ArrowLeft, Building2, Camera, Copy, FileText, Loader2, MapPin, Paperclip, Send } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, Camera, Copy, FileText, Loader2, Paperclip, Send } from 'lucide-react';
 import { useLang } from '@/lib/i18n';
 import { supabase, safeStorageName, slug, MAX_UPLOAD_MB } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
@@ -159,23 +159,6 @@ export default function ApplicationDetail() {
           <StatusBadge status={app.status} lang={lang} />
         </div>
       </div>
-
-      {app.status === 'visit_required' && (
-        <div className="rounded-[18px] border-2 border-[#7a44c9] bg-[#f6f1fd] p-5">
-          <div className="flex items-start gap-3">
-            <Building2 className="mt-0.5 size-6 shrink-0 text-[#5b2a9e]" />
-            <div className="min-w-0 flex-1">
-              <p className="text-lg font-semibold">{tx('Visit your Sachivalayam to verify', 'ధృవీకరణకు మీ సచివాలయానికి వెళ్లండి')}</p>
-              <p className="mt-1 text-[15px] text-muted">
-                {tx('Take your original documents and this application number. Staff will check them in person.', 'మీ అసలు పత్రాలు, ఈ దరఖాస్తు నంబర్ తీసుకెళ్లండి. సిబ్బంది స్వయంగా పరిశీలిస్తారు.')}
-              </p>
-              <Link to="/nearest-center?near=1" className="mt-4 inline-flex h-11 items-center gap-2 rounded-[12px] bg-ink px-5 font-semibold text-white">
-                <MapPin className="size-4" /> {tx('Find my Sachivalayam', 'నా సచివాలయం కనుగొనండి')}
-              </Link>
-            </div>
-          </div>
-        </div>
-      )}
 
       {pending && (
         <div className="rounded-[18px] border-2 border-turmeric bg-turmeric-50 p-5">
