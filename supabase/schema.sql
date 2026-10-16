@@ -1134,3 +1134,9 @@ grant execute on function public.claim_staff(text) to authenticated;
 -- sign-up trigger hadn't made one yet; only allow the harmless columns.
 revoke insert on public.profiles from authenticated;
 grant insert (id, full_name, email) on public.profiles to authenticated;
+revoke execute on function public.lookup_application_by_token(text) from public, anon;
+revoke execute on function public.lookup_application_history(text) from public, anon;
+revoke execute on function public.lookup_certificate_by_token(text) from public, anon;
+grant execute on function public.lookup_application_by_token(text) to authenticated;
+grant execute on function public.lookup_application_history(text) to authenticated;
+grant execute on function public.lookup_certificate_by_token(text) to authenticated;

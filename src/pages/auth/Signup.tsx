@@ -6,10 +6,13 @@ import { useLang } from '@/lib/i18n';
 import { supabase } from '@/lib/supabase';
 import { claimStaff, forgetStaffKey, rememberStaffKey, STAFF_ERRORS } from '@/lib/staff';
 import { Button, Field, Input, Notice, Segmented } from '@/components/ui';
-import AuthLayout from './AuthLayout';
+import AuthLayout, { EmbeddedAuth } from './AuthLayout';
 import PasswordInput from './PasswordInput';
 
-export default function Signup() {
+type Role = 'citizen' | 'staff';
+type Props = { embedded?: boolean; role?: Role; onRole?: (r: Role) => void; onSwitch?: () => void };
+
+export default function Signup({ embedded, role: roleProp, onRole, onSwitch }: Props = {}) {
   const { tx, lang } = useLang();
   const location = useLocation();
   const { refreshProfile, setHoldRedirect } = useAuth();
@@ -17,7 +20,10 @@ export default function Signup() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [staffKey, setStaffKey] = useState('');
-  const [role, setRole] = useState<'citizen' | 'staff'>(() => (new URLSearchParams(location.search).get('as') === 'staff' ? 'staff' : 'citizen'));
+  const [roleState, setRoleState] = useState<Role>(() => (new URLSearchParams(location.search).get('as') === 'staff' ? 'staff' : 'citizen'));
+  const role = roleProp ?? roleState;
+  const setRole = (r: Role) => (onRole ? onRole(r) : setRoleState(r));
+  const Shell = embedded ? EmbeddedAuth : AuthLayout;
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [sentTo, setSentTo] = useState<string | null>(null);
@@ -74,7 +80,7 @@ export default function Signup() {
 
   if (sentTo)
     return (
-      <AuthLayout title={tx('Check your email', 'మీ ఇమెయిల్ చూడండి')}>
+      <Shell title={tx('Check your email', 'మీ ఇమెయిల్ చూడండి')}>
         <div className="flex flex-col items-start gap-4">
           <span className="grid size-14 place-items-center rounded-full bg-leaf-50 text-leaf">
             <MailCheck className="size-7" />
@@ -84,15 +90,21 @@ export default function Signup() {
             {tx('Open it, then come back and log in.', 'దాన్ని తెరిచి, తిరిగి వచ్చి లాగిన్ అవ్వండి.')}
           </p>
           <p className="text-sm text-muted">{tx('Can’t find it? Look in Spam or Promotions.', 'కనబడలేదా? Spam లేదా Promotions చూడండి.')}</p>
-          <Link to="/login" className="font-semibold text-ink underline decoration-turmeric decoration-2 underline-offset-2">
-            {tx('Go to log in', 'లాగిన్‌కు వెళ్లండి')}
-          </Link>
+          {onSwitch ? (
+            <button type="button" onClick={onSwitch} className="font-semibold text-ink underline decoration-turmeric decoration-2 underline-offset-2">
+              {tx('Go to log in', 'లాగిన్‌కు వెళ్లండి')}
+            </button>
+          ) : (
+            <Link to="/login" className="font-semibold text-ink underline decoration-turmeric decoration-2 underline-offset-2">
+              {tx('Go to log in', 'లాగిన్‌కు వెళ్లండి')}
+            </Link>
+          )}
         </div>
-      </AuthLayout>
+      </Shell>
     );
 
   return (
-    <AuthLayout
+    <Shell
       title={role === 'staff' ? tx('Register as staff', 'సిబ్బందిగా నమోదు') : tx('Create your account', 'మీ ఖాతా సృష్టించండి')}
       subtitle={
         role === 'staff'
@@ -137,10 +149,16 @@ export default function Signup() {
       </form>
       <p className="mt-6 text-center text-[15px] text-muted">
         {tx('Already have an account?', 'ఇప్పటికే ఖాతా ఉందా?')}{' '}
-        <Link to={role === 'staff' ? '/login?as=staff' : '/login'} state={location.state} className="font-semibold text-ink underline decoration-turmeric decoration-2 underline-offset-2">
-          {tx('Log in', 'లాగిన్')}
-        </Link>
+        {onSwitch ? (
+          <button type="button" onClick={onSwitch} className="font-semibold text-ink underline decoration-turmeric decoration-2 underline-offset-2">
+            {tx('Log in', 'లాగిన్')}
+          </button>
+        ) : (
+          <Link to={role === 'staff' ? '/login?as=staff' : '/login'} state={location.state} className="font-semibold text-ink underline decoration-turmeric decoration-2 underline-offset-2">
+            {tx('Log in', 'లాగిన్')}
+          </Link>
+        )}
       </p>
-    </AuthLayout>
+    </Shell>
   );
 }

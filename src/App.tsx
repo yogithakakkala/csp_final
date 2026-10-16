@@ -60,15 +60,10 @@ function Gate({ need }: { need: 'citizen' | 'staff' | 'guest' }) {
   return <Outlet />;
 }
 
-/** Public pages: anyone can browse; staff are sent to their panel. */
-function PublicCitizen() {
-  const { user, isStaff, ready } = useAuth();
-  if (ready && user && isStaff) return <Navigate to="/admin" replace />;
-  return <Outlet />;
-}
-
+/** Welcome page = log in / register. Signed-in users go straight to their home. */
 function Root() {
-  const { user, isStaff, ready } = useAuth();
+  const { user, isStaff, ready, holdRedirect } = useAuth();
+  if (holdRedirect) return <Landing />; // stay here while a staff key is being checked
   if (!ready) return <FullPageLoader />;
   if (user) return <Navigate to={isStaff ? '/admin' : '/home'} replace />;
   return <Landing />;
@@ -122,8 +117,10 @@ export default function App() {
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
 
-          <Route element={<PublicCitizen />}>
+          {/* Everything inside the app needs a citizen login. */}
+          <Route element={<Gate need="citizen" />}>
             <Route element={<AppShell />}>
+              <Route path="/home" element={<Home />} />
               <Route path="/schemes" element={<Schemes />} />
               <Route path="/schemes/:id" element={<CatalogDetail kind="scheme" />} />
               <Route path="/services" element={<Services />} />
@@ -136,15 +133,11 @@ export default function App() {
               <Route path="/certificate" element={<Navigate to="/track" replace />} />
               <Route path="/sachibot" element={<SachiBot />} />
               <Route path="/help" element={<Help />} />
-
-              <Route element={<Gate need="citizen" />}>
-                <Route path="/home" element={<Home />} />
-                <Route path="/schemes/:schemeId/apply" element={<SchemeApply />} />
-                <Route path="/apply-all" element={<ApplyAll />} />
-                <Route path="/documents" element={<DocumentChecklist />} />
-                <Route path="/my-applications" element={<MyApplications />} />
-                <Route path="/my-applications/:applicationId" element={<ApplicationDetail />} />
-              </Route>
+              <Route path="/schemes/:schemeId/apply" element={<SchemeApply />} />
+              <Route path="/apply-all" element={<ApplyAll />} />
+              <Route path="/documents" element={<DocumentChecklist />} />
+              <Route path="/my-applications" element={<MyApplications />} />
+              <Route path="/my-applications/:applicationId" element={<ApplicationDetail />} />
             </Route>
           </Route>
 

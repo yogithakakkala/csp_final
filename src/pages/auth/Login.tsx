@@ -6,17 +6,22 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { claimStaff, STAFF_ERRORS } from '@/lib/staff';
 import { Button, Field, Input, Notice, Segmented } from '@/components/ui';
-import AuthLayout from './AuthLayout';
+import AuthLayout, { EmbeddedAuth } from './AuthLayout';
 import PasswordInput from './PasswordInput';
 
 type Role = 'citizen' | 'staff';
 
-export default function Login() {
+type Props = { embedded?: boolean; role?: Role; onRole?: (r: Role) => void; onSwitch?: () => void };
+
+export default function Login({ embedded, role: roleProp, onRole, onSwitch }: Props = {}) {
   const { tx, lang } = useLang();
   const location = useLocation();
   const { refreshProfile, setHoldRedirect } = useAuth();
   const flash = (location.state as { flash?: string } | null)?.flash;
-  const [role, setRole] = useState<Role>(() => (new URLSearchParams(location.search).get('as') === 'staff' ? 'staff' : 'citizen'));
+  const [roleState, setRoleState] = useState<Role>(() => (new URLSearchParams(location.search).get('as') === 'staff' ? 'staff' : 'citizen'));
+  const role = roleProp ?? roleState;
+  const setRole = (r: Role) => (onRole ? onRole(r) : setRoleState(r));
+  const Shell = embedded ? EmbeddedAuth : AuthLayout;
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [staffKey, setStaffKey] = useState('');
@@ -62,7 +67,7 @@ export default function Login() {
   };
 
   return (
-    <AuthLayout
+    <Shell
       title={role === 'staff' ? tx('Staff login', 'సిబ్బంది లాగిన్') : tx('Welcome back', 'మళ్లీ స్వాగతం')}
       subtitle={
         role === 'staff'
@@ -108,10 +113,16 @@ export default function Login() {
       </form>
       <p className="mt-6 text-center text-[15px] text-muted">
         {tx('New here?', 'కొత్తవారా?')}{' '}
-        <Link to={role === 'staff' ? '/signup?as=staff' : '/signup'} state={location.state} className="font-semibold text-ink underline decoration-turmeric decoration-2 underline-offset-2">
-          {role === 'staff' ? tx('Register as staff', 'సిబ్బందిగా నమోదు') : tx('Create an account', 'ఖాతా సృష్టించండి')}
-        </Link>
+        {onSwitch ? (
+          <button type="button" onClick={onSwitch} className="font-semibold text-ink underline decoration-turmeric decoration-2 underline-offset-2">
+            {role === 'staff' ? tx('Register as staff', 'సిబ్బందిగా నమోదు') : tx('Create an account', 'ఖాతా సృష్టించండి')}
+          </button>
+        ) : (
+          <Link to={role === 'staff' ? '/signup?as=staff' : '/signup'} state={location.state} className="font-semibold text-ink underline decoration-turmeric decoration-2 underline-offset-2">
+            {role === 'staff' ? tx('Register as staff', 'సిబ్బందిగా నమోదు') : tx('Create an account', 'ఖాతా సృష్టించండి')}
+          </Link>
+        )}
       </p>
-    </AuthLayout>
+    </Shell>
   );
 }

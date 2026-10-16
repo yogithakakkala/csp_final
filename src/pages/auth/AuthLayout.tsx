@@ -39,3 +39,14 @@ export default function AuthLayout({ title, subtitle, children }: { title: strin
     </div>
   );
 }
+
+/** The same login / register content without the full-page frame, for use inside the welcome page. */
+export function EmbeddedAuth({ title, subtitle, children }: { title: string; subtitle?: string; children: ReactNode }) {
+  return (
+    <div className="animate-rise">
+      <h2 className="display text-[26px] text-ink">{title}</h2>
+      {subtitle && <p className="mt-1 text-[15px] text-muted">{subtitle}</p>}
+      <div className="mt-5">{children}</div>
+    </div>
+  );
+}
