@@ -7,6 +7,7 @@ import { useLang } from '@/lib/i18n';
 import { EmptyState, ListSkeleton, PageHeader, StatusBadge, Tabs, STATUS_META } from '@/components/ui';
 import { daysSince, schemeLabel } from '@/components/ApplicationBits';
 import type { Application, ApplicationStatus } from '@/types';
+import { askConfirm } from '@/components/ConfirmDialog';
 
 const STATUSES: ApplicationStatus[] = ['submitted', 'under_review', 'documents_requested', 'approved', 'rejected'];
 const SELECT = '*, scheme:schemes(name, name_telugu), profile:profiles(full_name, email)';
@@ -128,7 +129,7 @@ export default function AdminApplications() {
                         </button>
                         <button
                           disabled={busy === a.id}
-                          onClick={() => confirm(tx('Reject this application?', 'ఈ దరఖాస్తును తిరస్కరించాలా?')) && setStatus(a, 'rejected')}
+                          onClick={async () => (await askConfirm({ title: tx('Reject this application?', 'ఈ దరఖాస్తును తిరస్కరించాలా?'), body: tx('The applicant will be asked to visit their nearby Sachivalayam, where staff explain the reason.', 'కారణం తెలుసుకోవడానికి సమీప సచివాలయానికి రమ్మని దరఖాస్తుదారుకు చెబుతాం.'), confirmLabel: tx('Reject', 'తిరస్కరించు'), tone: 'danger' })) && setStatus(a, 'rejected')}
                           className="grid size-9 place-items-center rounded-[10px] border border-kumkum/30 text-kumkum"
                           aria-label={tx('Reject', 'తిరస్కరించు')}
                           title={tx('Reject', 'తిరస్కరించు')}

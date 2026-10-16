@@ -6,6 +6,7 @@ import { useLang } from '@/lib/i18n';
 import { useAuth } from '@/hooks/useAuth';
 import { Button, Card, ListSkeleton, Notice, PageHeader } from '@/components/ui';
 import type { Profile } from '@/types';
+import { askConfirm } from '@/components/ConfirmDialog';
 
 export default function AdminStaff() {
   const { tx } = useLang();
@@ -33,7 +34,7 @@ export default function AdminStaff() {
   }, [q]);
 
   const setStaffFlag = async (p: Profile, value: boolean) => {
-    if (!value && p.id === user?.id && !confirm(tx('Remove your own staff access? You will lose the staff panel.', 'మీ సిబ్బంది యాక్సెస్ తీసేయాలా?'))) return;
+    if (!value && p.id === user?.id && !(await askConfirm({ title: tx('Remove your own staff access?', 'మీ సిబ్బంది యాక్సెస్ తీసేయాలా?'), body: tx('You will lose the staff panel.', 'మీకు సిబ్బంది ప్యానెల్ కనబడదు.'), confirmLabel: tx('Remove', 'తీసేయి'), tone: 'danger' }))) return;
     const { error } = await supabase.rpc('set_staff_status', { _target_id: p.id, _new_value: value });
     if (error) return toast.error(error.message);
     toast.success(value ? tx(`${p.email} is now staff`, `${p.email} ఇప్పుడు సిబ్బంది`) : tx('Access removed', 'యాక్సెస్ తీసివేయబడింది'));

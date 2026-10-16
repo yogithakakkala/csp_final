@@ -8,6 +8,7 @@ import { Button, Field, Input, ListSkeleton, Notice, PageHeader, Segmented, Shee
 import { getItem, STATUS_LABEL, pick } from '@/data/catalog';
 import { cn } from '@/lib/utils';
 import type { Caste, Scheme } from '@/types';
+import { askConfirm } from '@/components/ConfirmDialog';
 
 const CASTES: Caste[] = ['SC', 'ST', 'BC', 'OC', 'EWS', 'Minority'];
 interface Form {
@@ -100,7 +101,7 @@ export default function AdminSchemes() {
 
   const remove = async (s: Scheme) => {
     if (counts[s.id]) return toast.error(tx('This scheme has applications, so it can’t be deleted.', 'ఈ పథకానికి దరఖాస్తులు ఉన్నాయి, తొలగించలేము.'));
-    if (!confirm(tx(`Delete ${s.name}?`, `${s.name_telugu} తొలగించాలా?`))) return;
+    if (!(await askConfirm({ title: tx(`Delete ${s.name}?`, `${s.name_telugu} తొలగించాలా?`), confirmLabel: tx('Delete', 'తొలగించు'), tone: 'danger' }))) return;
     const { error } = await supabase.from('schemes').delete().eq('id', s.id);
     if (error) return toast.error(error.message);
     void load();

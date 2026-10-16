@@ -6,6 +6,7 @@ import { useLang } from '@/lib/i18n';
 import { BUSY_META, busyIsStale, directionsUrl, type BusyLevel } from '@/lib/places';
 import { Button, EmptyState, Field, Input, ListSkeleton, PageHeader, Sheet, Tabs } from '@/components/ui';
 import { cn } from '@/lib/utils';
+import { askConfirm } from '@/components/ConfirmDialog';
 
 type Kind = 'sachivalayam_centers' | 'meeseva_centers';
 interface Row {
@@ -66,7 +67,7 @@ export default function AdminCenters() {
   };
 
   const bulk = async (level: BusyLevel) => {
-    if (!rows?.length || !confirm(tx(`Set all ${rows.length} centres on this page to “${BUSY_META[level].en}”?`, `ఈ పేజీలోని ${rows.length} కేంద్రాలను “${BUSY_META[level].te}”గా మార్చాలా?`))) return;
+    if (!rows?.length || !(await askConfirm({ title: tx(`Set all ${rows.length} centres on this page to “${BUSY_META[level].en}”?`, `ఈ పేజీలోని ${rows.length} కేంద్రాలను “${BUSY_META[level].te}”గా మార్చాలా?`) }))) return;
     const { error } = await supabase
       .from('sachivalayam_centers')
       .update({ busy_level: level, busy_updated_at: new Date().toISOString() })
@@ -120,7 +121,7 @@ export default function AdminCenters() {
   };
 
   const remove = async (r: Row) => {
-    if (!confirm(tx(`Delete ${r.name}?`, `${r.name} తొలగించాలా?`))) return;
+    if (!(await askConfirm({ title: tx(`Delete ${r.name}?`, `${r.name} తొలగించాలా?`), confirmLabel: tx('Delete', 'తొలగించు'), tone: 'danger' }))) return;
     const { error } = await supabase.from(table).delete().eq('id', r.id);
     if (error) return toast.error(error.message);
     setRows((l) => l?.filter((x) => x.id !== r.id) ?? l);

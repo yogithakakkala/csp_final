@@ -9,6 +9,7 @@ import { Button, Card, Field, FullPageLoader, Input, Notice, Select, STATUS_META
 import { openFile, timeLabel } from '@/lib/files';
 import { cn } from '@/lib/utils';
 import type { Application, ApplicationMessage, ApplicationStatus } from '@/types';
+import { askConfirm } from '@/components/ConfirmDialog';
 
 // Shown in the "Ask for a document" dropdown after the scheme's own documents.
 const COMMON_DOCS = [
@@ -95,7 +96,15 @@ export default function AdminApplicationDetail() {
 
   const setStatus = async (s: ApplicationStatus) => {
     if (!app || s === app.status) return;
-    if ((s === 'rejected' || s === 'approved') && !confirm(tx(`Mark as ${STATUS_META[s].en}? The citizen will be notified.`, `${STATUS_META[s].te}గా గుర్తించాలా? పౌరుడికి తెలియజేయబడుతుంది.`))) return;
+    if (
+      (s === 'rejected' || s === 'approved') &&
+      !(await askConfirm(
+          s === 'approved'
+            ? { title: tx('Approve this application?', 'ఈ దరఖాస్తును ఆమోదించాలా?'), body: tx('The applicant will be told it is approved and asked to visit their nearby Sachivalayam for the next steps.', 'ఆమోదం గురించి దరఖాస్తుదారుకు తెలియజేసి, తదుపరి చర్యల కోసం సమీప సచివాలయానికి రమ్మని చెబుతాం.'), confirmLabel: tx('Approve', 'ఆమోదించు'), tone: 'success' }
+            : { title: tx('Reject this application?', 'ఈ దరఖాస్తును తిరస్కరించాలా?'), body: tx('The applicant will be asked to visit their nearby Sachivalayam, where staff explain the reason.', 'కారణం తెలుసుకోవడానికి సమీప సచివాలయానికి రమ్మని దరఖాస్తుదారుకు చెబుతాం.'), confirmLabel: tx('Reject', 'తిరస్కరించు'), tone: 'danger' },
+        ))
+    )
+      return;
     setBusy('status');
     const { error } = await supabase.from('applications').update({ status: s }).eq('id', app.id);
     setBusy(null);

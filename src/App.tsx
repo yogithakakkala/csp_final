@@ -8,6 +8,7 @@ import { loadCatalog } from '@/lib/schemes';
 import { UnreadUpdatesProvider } from '@/hooks/useUnreadUpdates';
 import AppShell from '@/components/AppShell';
 import { FullPageLoader } from '@/components/ui';
+import { ConfirmHost } from '@/components/ConfirmDialog';
 
 // Every page is its own chunk, so the first load only downloads what it shows.
 const Landing = lazy(() => import('@/pages/Landing'));
@@ -106,6 +107,7 @@ export default function App() {
     <UnreadUpdatesProvider>
       <Toaster position="top-center" richColors closeButton toastOptions={{ style: { fontFamily: 'inherit' } }} />
       <RecoveryRedirect />
+      <ConfirmHost />
       <Suspense fallback={<FullPageLoader />}>
         <Routes>
           <Route path="/" element={<Root />} />
