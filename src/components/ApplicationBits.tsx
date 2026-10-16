@@ -9,7 +9,7 @@ const ORDER: ApplicationStatus[] = ['submitted', 'under_review', 'documents_requ
 
 /** Four-segment progress used on list rows. */
 export function MiniProgress({ status }: { status: ApplicationStatus }) {
-  const idx = status === 'rejected' ? 3 : ORDER.indexOf(status);
+  const idx = status === 'rejected' ? 3 : status === 'visit_required' ? 2 : ORDER.indexOf(status);
   return (
     <div className="flex w-full max-w-[220px] gap-1" aria-hidden>
       {ORDER.map((_, i) => (
@@ -42,6 +42,7 @@ const LABEL: Record<string, { en: string; te: string; hint?: { en: string; te: s
   submitted: { en: 'Application submitted', te: 'దరఖాస్తు సమర్పించబడింది' },
   under_review: { en: 'Under review at Sachivalayam', te: 'సచివాలయంలో సమీక్షలో ఉంది' },
   documents_requested: { en: 'Documents requested', te: 'పత్రాలు అడిగారు' },
+  visit_required: { en: 'Visit your Sachivalayam to verify', te: 'ధృవీకరణకు మీ సచివాలయానికి వెళ్లండి', hint: { en: 'Take your original documents. Staff will check them in person.', te: 'అసలు పత్రాలు తీసుకెళ్లండి. సిబ్బంది స్వయంగా పరిశీలిస్తారు.' } },
   approved: { en: 'Approved', te: 'ఆమోదించబడింది' },
   rejected: { en: 'Rejected', te: 'తిరస్కరించబడింది' },
   final: { en: 'Decision', te: 'నిర్ణయం', hint: { en: 'Usually 7–30 days after submitting, depending on the scheme.', te: 'పథకాన్ని బట్టి సాధారణంగా సమర్పించిన 7–30 రోజుల్లో.' } },
@@ -96,6 +97,8 @@ export function Timeline({ application, history: given }: { application: Pick<Ap
       state: st === 'documents_requested' ? 'current' : 'done',
       note: last('documents_requested')?.document_requested,
     });
+  if (last('visit_required') || st === 'visit_required')
+    steps.push({ key: 'visit_required', when: last('visit_required')?.changed_at, state: st === 'visit_required' ? 'current' : 'done' });
   if (terminal) steps.push({ key: st, when: last(st)?.changed_at, state: st === 'rejected' ? 'bad' : 'done' });
   else steps.push({ key: 'final', state: 'todo' });
   if (st === 'submitted') steps[0].state = 'current';

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { AlertTriangle, ArrowRight, Bot, ClipboardCheck, FilePen, FileSearch, ListChecks, LocateFixed, MapPin, Send, Sparkles, Stamp } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Building2, Bot, ClipboardCheck, FilePen, FileSearch, ListChecks, LocateFixed, MapPin, Send, Sparkles, Stamp } from 'lucide-react';
 import { useProfile } from '@/hooks/useProfile';
 import { canApply, matchSchemes, needsApplication, useCatalog } from '@/lib/schemes';
 import { useLang } from '@/lib/i18n';
@@ -52,6 +52,7 @@ export default function Home() {
 
   const first = (profile?.full_name || user?.email?.split('@')[0] || '').split(' ')[0];
   const needDocs = (apps ?? []).filter((a) => a.status === 'documents_requested');
+  const needVisit = (apps ?? []).filter((a) => a.status === 'visit_required');
   const busyNearest = !!nearest?.busy_level && nearest.busy_level !== 'low' && !busyIsStale(nearest.busy_updated_at);
   const hour = new Date().getHours();
   const greet = hour < 12 ? tx('Good morning', 'శుభోదయం') : hour < 17 ? tx('Good afternoon', 'శుభ మధ్యాహ్నం') : tx('Good evening', 'శుభ సాయంత్రం');
@@ -109,12 +110,15 @@ export default function Home() {
       </section>
 
       {/* Things that need the citizen's attention — one list, most urgent first */}
-      {(needDocs.length > 0 || drafts.length > 0 || busyNearest) && (
+      {(needDocs.length > 0 || needVisit.length > 0 || drafts.length > 0 || busyNearest) && (
         <section>
           <h2 className="mb-3 text-lg font-semibold">{tx('Needs your attention', 'మీ శ్రద్ధ అవసరం')}</h2>
           <ul className="divide-y divide-line overflow-hidden rounded-[18px] border border-line bg-paper">
             {needDocs.map((a) => (
               <AttentionRow key={a.id} to={`/my-applications/${a.id}`} icon={<AlertTriangle className="size-5" />} tone="amber" title={tx('Upload the document staff asked for', 'సిబ్బంది అడిగిన పత్రం అప్‌లోడ్ చేయండి')} sub={schemeLabel(a, lang)} />
+            ))}
+            {needVisit.map((a) => (
+              <AttentionRow key={a.id} to={`/my-applications/${a.id}`} icon={<Building2 className="size-5" />} tone="ink" title={tx('Visit your Sachivalayam to verify', 'ధృవీకరణకు మీ సచివాలయానికి వెళ్లండి')} sub={schemeLabel(a, lang)} />
             ))}
             {drafts.slice(0, 2).map((d) => (
               <AttentionRow

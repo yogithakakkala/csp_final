@@ -8,7 +8,7 @@ import { schemeLabel } from '@/components/ApplicationBits';
 import { getCachedSchemes } from '@/lib/schemes';
 import type { Application, ApplicationStatus } from '@/types';
 
-const STATUSES: ApplicationStatus[] = ['submitted', 'under_review', 'documents_requested', 'approved', 'rejected'];
+const STATUSES: ApplicationStatus[] = ['submitted', 'under_review', 'documents_requested', 'visit_required', 'approved', 'rejected'];
 
 interface Stats {
   byStatus: Record<string, number>;

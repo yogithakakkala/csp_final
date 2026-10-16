@@ -85,6 +85,7 @@ export type ApplicationStatus =
   | 'submitted'
   | 'under_review'
   | 'documents_requested'
+  | 'visit_required'
   | 'approved'
   | 'rejected';
 

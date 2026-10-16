@@ -295,6 +295,7 @@ export const STATUS_META: Record<ApplicationStatus, { en: string; te: string; cl
   submitted: { en: 'Submitted', te: 'సమర్పించబడింది', cls: 'bg-ink-50 text-ink', dot: 'bg-ink' },
   under_review: { en: 'Under review', te: 'సమీక్షలో ఉంది', cls: 'bg-[#e7effd] text-[#1d4fb8]', dot: 'bg-[#2a63d6]' },
   documents_requested: { en: 'Documents needed', te: 'పత్రాలు కావాలి', cls: 'bg-amber-50 text-amber', dot: 'bg-turmeric-deep' },
+  visit_required: { en: 'Visit Sachivalayam to verify', te: 'ధృవీకరణకు సచివాలయానికి రండి', cls: 'bg-[#f1eafc] text-[#5b2a9e]', dot: 'bg-[#7a44c9]' },
   approved: { en: 'Approved', te: 'ఆమోదించబడింది', cls: 'bg-leaf-50 text-leaf', dot: 'bg-leaf' },
   rejected: { en: 'Rejected', te: 'తిరస్కరించబడింది', cls: 'bg-kumkum-50 text-kumkum', dot: 'bg-kumkum' },
 };
