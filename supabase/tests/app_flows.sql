@@ -129,11 +129,13 @@ select pg_temp.check((select count(*) = 0 from public.application_status_history
 select pg_temp.check((select count(*) = 0 from storage.objects), 'other citizen cannot see the documents');
 select pg_temp.check((select count(*) = 0 from public.user_documents), 'other citizen cannot see my-documents');
 
--- ── Public tracking by number (no login) ───────────────────────────────────
+-- ── Tracking by number (login required) ────────────────────────────────────
 select pg_temp.act(null);
 reset role;
 select set_config('test.token', (select token_number from public.applications limit 1), false);
 select pg_temp.act(null);
+select pg_temp.expect_fail($q$select * from public.lookup_application_by_token(current_setting('test.token'))$q$, 'logged-out visitor tracking by number');
+select pg_temp.act('aaaaaaaa-0000-0000-0000-000000000002');
 select pg_temp.check((select applicant_name = 'Lakshmi' from public.lookup_application_by_token(lower(current_setting('test.token')))), 'tracker finds application (case-insensitive), first name only');
 select pg_temp.check((select count(*) = 1 from public.lookup_application_history(current_setting('test.token'))), 'tracker shows the timeline');
 
@@ -147,6 +149,10 @@ update public.applications set status = 'documents_requested';
 select pg_temp.check((select changed_by_staff and document_requested = 'Ration card (White / Yellow)' from public.application_status_history where status = 'documents_requested'), 'timeline records staff action and requested document');
 update public.applications set status = 'under_review';
 select pg_temp.check((select count(*) = 3 from public.application_status_history), 'each status change adds a timeline step');
+update public.applications set status = 'visit_required';
+select pg_temp.check((select status = 'visit_required' from public.applications), 'staff ask the citizen to visit the Sachivalayam to verify');
+select pg_temp.check((select count(*) = 1 from public.application_status_history where status = 'visit_required' and changed_by_staff), 'visit request appears on the timeline');
+update public.applications set status = 'under_review';
 
 -- citizen uploads the requested document through the RPC
 select pg_temp.act('aaaaaaaa-0000-0000-0000-000000000001');
@@ -198,8 +204,9 @@ update public.sachivalayam_centers set busy_note = 'hack';
 select pg_temp.check((select count(*) = 0 from public.sachivalayam_centers where busy_note = 'hack'), 'citizen cannot edit centres');
 select pg_temp.check((select count(*) = 0 from public.certificate_requests), 'citizen cannot list certificate requests');
 
+select pg_temp.check((select status = 'ready' and citizen_name = 'Ramesh' from public.lookup_certificate_by_token('sc-2026-12345')), 'certificate tracked by token (logged in), first name only');
 select pg_temp.act(null);
-select pg_temp.check((select status = 'ready' and citizen_name = 'Ramesh' from public.lookup_certificate_by_token('sc-2026-12345')), 'certificate tracked by token, first name only');
+select pg_temp.expect_fail($$select * from public.lookup_certificate_by_token('sc-2026-12345')$$, 'logged-out visitor tracking a certificate');
 
 reset role;
 select 'ALL CHECKS PASSED' as result;
