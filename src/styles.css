@@ -10,6 +10,8 @@
   paper    — cards; mist — page background
 */
 @theme {
+  /* Desktop layout (side menu) from 900px, so tablets and phones in "Desktop site" mode get it too. */
+  --breakpoint-lg: 56.25rem;
   --color-ink: #1c2566;
   --color-ink-soft: #3b4590;
   --color-ink-50: #eef0fa;

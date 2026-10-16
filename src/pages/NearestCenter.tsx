@@ -246,7 +246,7 @@ export default function NearestCenter() {
           </label>
         </div>
 
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">
           <div className={cn(view === 'map' && 'hidden lg:block')}>
             {osmFailed && (
               <Notice tone="warn" className="mb-3 flex items-center justify-between gap-3">
