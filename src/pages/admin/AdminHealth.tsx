@@ -71,7 +71,7 @@ function buildChecks(uid: string): Check[] {
     {
       id: 'rpc',
       group: 'Database',
-      label: 'Public tracking by application number',
+      label: 'Tracking by application number',
       run: async () => {
         const { error } = await supabase.rpc('lookup_application_by_token', { _token: 'APP-0000-000000' });
         return error ? fail(error.message, MIGRATION) : ok('lookup_application_by_token works');
@@ -120,7 +120,8 @@ function buildChecks(uid: string): Check[] {
         const imported = await supabase.from('sachivalayam_centers').select('*', { count: 'exact', head: true }).not('osm_id', 'is', null);
         const n = imported.count ?? 0;
         if (n > 0) return ok(`${s} Sachivalayams (${n} imported from OpenStreetMap), ${m} MeeSeva`);
-        return warn(`${s} Sachivalayams, ${m} MeeSeva — all-AP import not run yet`, 'Optional: run `npm run import:centers` (see README). Live map search works without it.');
+        if (s + m > 0) return ok(`${s} Sachivalayams and ${m} MeeSeva centres saved; the live map search adds more`);
+        return warn('No centres saved yet', 'Add centres in Admin → Centres, or run `npm run import:centers` (see README).');
       },
     },
     {
@@ -128,8 +129,13 @@ function buildChecks(uid: string): Check[] {
       group: 'Centres',
       label: 'Live map search (OpenStreetMap)',
       run: async () => {
-        const list = await searchOsmCenters({ lat: 16.5062, lng: 80.648 }, 5);
-        return list.length ? ok(`${list.length} centres found around Vijayawada`) : warn('Answered, but found nothing', 'Try again in a minute — the public server may be busy.');
+        // A free public service run by volunteers: when it is busy the app simply uses the saved centres.
+        try {
+          const list = await searchOsmCenters({ lat: 16.5062, lng: 80.648 }, 5);
+          return list.length ? ok(`${list.length} centres found around Vijayawada`) : warn('Answered, but found nothing nearby', 'Saved centres are still shown on Find a centre.');
+        } catch {
+          return warn('The free OpenStreetMap servers are busy right now', 'Nothing to fix — Find a centre still shows the saved centres. Run the check again later.');
+        }
       },
     },
     {
@@ -137,8 +143,12 @@ function buildChecks(uid: string): Check[] {
       group: 'Centres',
       label: 'Village / town search',
       run: async () => {
-        const hits = await geocode('Guntur', 'en');
-        return hits.length ? ok(`“Guntur” → ${hits[0].label}, ${hits[0].sub}`) : fail('No result for “Guntur”');
+        try {
+          const hits = await geocode('Guntur', 'en');
+          return hits.length ? ok(`“Guntur” → ${hits[0].label}, ${hits[0].sub}`) : warn('No result for “Guntur” right now', 'The free search server may be busy — run the check again later. GPS location still works.');
+        } catch {
+          return warn('The free place-search servers are busy right now', 'Nothing to fix — GPS location still works. Run the check again later.');
+        }
       },
     },
     {
@@ -148,7 +158,7 @@ function buildChecks(uid: string): Check[] {
       run: async () => {
         const r = await fetch('/api/places').then((x) => x.json()).catch(() => null) as { configured?: boolean } | null;
         if (!r) return fail('/api/places did not answer', 'Redeploy on Vercel.');
-        if (!r.configured) return warn('Not configured', 'Optional: add GOOGLE_MAPS_API_KEY in Vercel (Places API (New) enabled).');
+        if (!r.configured) return ok('Not used — the free OpenStreetMap search is used instead (a Google key is optional)');
         const res = await fetch('/api/places', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ lat: 16.5062, lng: 80.648, radiusKm: 5 }) });
         const d = (await res.json()) as { places?: unknown[]; error?: string };
         return res.ok ? ok(`${d.places?.length ?? 0} places around Vijayawada`) : fail(d.error ?? `HTTP ${res.status}`, 'Check the key is valid and Places API (New) is enabled.');
