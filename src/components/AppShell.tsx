@@ -1,6 +1,6 @@
 import { Suspense, useEffect, useState, type ComponentType } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { Bot, ClipboardCheck, FileSearch, FolderOpen, HelpCircle, Home, LayoutGrid, ListChecks, LogIn, LogOut, MapPin, Sparkles, Stamp } from 'lucide-react';
+import { Bot, ShieldAlert, ClipboardCheck, FileSearch, FolderOpen, HelpCircle, Home, LayoutGrid, ListChecks, LogIn, LogOut, MapPin, Sparkles, Stamp } from 'lucide-react';
 import { useLang } from '@/lib/i18n';
 import { useAuth } from '@/hooks/useAuth';
 import { useUnreadUpdates } from '@/hooks/useUnreadUpdates';
@@ -9,6 +9,8 @@ import { Wordmark } from './Logo';
 import { FullPageLoader, Sheet } from './ui';
 import AIChatbot from './AIChatbot';
 import PageReader from './PageReader';
+import NotificationToggle from './NotificationToggle';
+import OfflineBanner from './OfflineBanner';
 
 type NavItem = { to: string; en: string; te: string; Icon: ComponentType<{ className?: string }>; end?: boolean; badge?: boolean; auth?: boolean };
 
@@ -36,6 +38,7 @@ const NAV: { group: { en: string; te: string }; items: NavItem[] }[] = [
     items: [
       { to: '/sachibot', en: 'Ask SachiBot', te: 'సచిబాట్', Icon: Bot },
       { to: '/help', en: 'Help', te: 'సహాయం', Icon: HelpCircle },
+      { to: '/report-agent', en: 'Report fake agent', te: 'నకిలీ ఏజెంట్ రిపోర్ట్', Icon: ShieldAlert, auth: true },
     ],
   },
 ];
@@ -76,6 +79,7 @@ export default function AppShell() {
 
   return (
     <div className="min-h-dvh">
+      <OfflineBanner />
       {/* Desktop sidebar — fixed so it always spans the full height */}
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-[264px] flex-col border-r border-line bg-paper lg:flex">
         <div className="px-5 pb-3 pt-6">
@@ -116,6 +120,7 @@ export default function AppShell() {
         </nav>
         <div className="space-y-2 border-t border-line p-3">
           <PageReader variant="row" />
+          {user && <NotificationToggle />}
           <button onClick={toggle} className="flex h-10 w-full items-center justify-between rounded-[10px] px-3 text-sm font-medium text-ink/80 hover:bg-mist">
             <span>{tx('Language', 'భాష')}</span>
             <span className="rounded-full bg-ink-50 px-2.5 py-0.5 text-xs font-semibold">{lang === 'en' ? 'English → తెలుగు' : 'తెలుగు → English'}</span>
@@ -216,6 +221,7 @@ export default function AppShell() {
               </div>
             );
           })}
+          {user && <NotificationToggle className="h-12 px-0 text-[15px]" />}
           {user && (
             <button onClick={handleSignOut} className="flex h-12 w-full items-center justify-center gap-2 rounded-[12px] border border-line font-semibold text-kumkum">
               <LogOut className="size-4" /> {tx('Log out', 'లాగ్అవుట్')}

@@ -15,6 +15,7 @@ import { useUserDocuments, CONFIRMED } from '@/hooks/useUserDocuments';
 import { Button, ButtonLink, Card, Field, Input, Notice, ProgressBar, Textarea, FullPageLoader } from '@/components/ui';
 import { cn } from '@/lib/utils';
 import type { SubmittedDocument } from '@/types';
+import AgentWarning from '@/components/AgentWarning';
 
 type Details = { full_name: string; phone: string; address: string; income: string; aadhaar_last4: string };
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
@@ -280,6 +281,7 @@ export default function SchemeApply() {
         </div>
       </div>
 
+      <AgentWarning compact className="mb-4" />
       {existing && (
         <Notice tone="warn" className="mb-4">
           {tx('You already have an application for this scheme', 'ఈ పథకానికి మీకు ఇప్పటికే దరఖాస్తు ఉంది')} ({existing.token_number}).{' '}

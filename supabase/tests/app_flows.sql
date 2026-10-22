@@ -208,5 +208,58 @@ select pg_temp.check((select status = 'ready' and citizen_name = 'Ramesh' from p
 select pg_temp.act(null);
 select pg_temp.expect_fail($$select * from public.lookup_certificate_by_token('sc-2026-12345')$$, 'logged-out visitor tracking a certificate');
 
+-- ── Fake-agent reports ──────────────────────────────────────────────────────
+select pg_temp.act('aaaaaaaa-0000-0000-0000-000000000001');
+insert into public.agent_reports (agent_name, agent_phone, place, amount_asked, scheme_id, details)
+values ('Ramu', '9000000000', 'Dungalavanipalem', 2000, 'ntr-bharosa-pension', 'Asked for Rs 2000 to register my pension.');
+select pg_temp.check((select count(*) = 1 from public.agent_reports), 'citizen files a fake-agent report and sees it');
+select pg_temp.expect_fail($$insert into public.agent_reports (details, status) values ('Someone asked for money', 'closed')$$, 'citizen filing a report already marked closed');
+select pg_temp.expect_fail($$insert into public.agent_reports (user_id, details) values ('aaaaaaaa-0000-0000-0000-000000000002', 'Filed in someone else''s name')$$, 'citizen filing a report as another person');
+update public.agent_reports set status = 'closed', staff_note = 'self-closed';
+select pg_temp.check((select status = 'new' from public.agent_reports), 'citizen cannot change the status of their report');
+select pg_temp.act('aaaaaaaa-0000-0000-0000-000000000002');
+select pg_temp.check((select count(*) = 0 from public.agent_reports), 'another citizen cannot see the report');
+select pg_temp.act(null);
+select pg_temp.expect_fail($$select * from public.agent_reports$$, 'logged-out visitor reading reports');
+select pg_temp.act('aaaaaaaa-0000-0000-0000-000000000009');
+select pg_temp.check((select count(*) = 1 from public.agent_reports), 'staff see all reports');
+update public.agent_reports set status = 'reviewing', staff_note = 'Informed the WEA; checking with the village.';
+select pg_temp.check((select status = 'reviewing' and staff_note is not null from public.agent_reports), 'staff update report status and note');
+select pg_temp.expect_fail($$update public.agent_reports set details = 'changed'$$, 'rewriting what the citizen reported');
+reset role;
+
+-- ── Phone notifications ─────────────────────────────────────────────────────
+insert into public.app_secrets (name, value) values ('push_hook_secret', 'test-secret'), ('push_function_url', 'https://example.test/functions/v1/send-push')
+on conflict (name) do update set value = excluded.value;
+select pg_temp.act('aaaaaaaa-0000-0000-0000-000000000001');
+insert into public.push_subscriptions (endpoint, p256dh, auth, lang) values ('https://push.example/abc', 'k', 'a', 'te');
+select pg_temp.check((select count(*) = 1 from public.push_subscriptions), 'citizen saves their phone for notifications');
+select pg_temp.expect_fail($$insert into public.push_subscriptions (user_id, endpoint, p256dh, auth) values ('aaaaaaaa-0000-0000-0000-000000000002', 'https://push.example/x', 'k', 'a')$$, 'saving a subscription for someone else');
+select pg_temp.expect_fail($$select public.send_document_reminders()$$, 'citizen running the reminder job');
+select pg_temp.act('aaaaaaaa-0000-0000-0000-000000000002');
+select pg_temp.check((select count(*) = 0 from public.push_subscriptions), 'another citizen cannot see subscriptions');
+reset role;
+delete from net.calls;
+select pg_temp.act('aaaaaaaa-0000-0000-0000-000000000009');
+update public.applications set status = 'under_review' where user_id = 'aaaaaaaa-0000-0000-0000-000000000001' and status <> 'under_review' and id = (select id from public.applications where user_id = 'aaaaaaaa-0000-0000-0000-000000000001' order by created_at limit 1);
+reset role;
+select pg_temp.check((select count(*) >= 1 from net.calls where headers->>'x-hook-secret' = 'test-secret' and body->>'user_id' = 'aaaaaaaa-0000-0000-0000-000000000001' and body->'te'->>'title' = 'దరఖాస్తు అప్‌డేట్'), 'status change sends a notification with the secret, in both languages');
+delete from net.calls;
+select pg_temp.act('aaaaaaaa-0000-0000-0000-000000000009');
+insert into public.application_messages (application_id, sender_type, message, is_document_request, requested_document_type)
+select id, 'staff', 'Please upload your income certificate.', true, 'Income certificate' from public.applications where user_id = 'aaaaaaaa-0000-0000-0000-000000000001' order by created_at limit 1;
+reset role;
+select pg_temp.check((select count(*) = 1 from net.calls where body->'en'->>'title' = 'Document needed' and body->'en'->>'body' like '%Income certificate%'), 'document request sends a notification');
+delete from net.calls;
+select pg_temp.act('aaaaaaaa-0000-0000-0000-000000000002');
+insert into public.application_messages (application_id, sender_type, message)
+select id, 'user', 'hello' from public.applications where user_id = 'aaaaaaaa-0000-0000-0000-000000000002' order by created_at limit 1;
+reset role;
+select pg_temp.check((select count(*) = 0 from net.calls), 'citizen messages do not notify anyone');
+update public.applications set status = 'documents_requested' where id = (select id from public.applications where user_id = 'aaaaaaaa-0000-0000-0000-000000000001' order by created_at limit 1);
+update public.application_messages set created_at = now() - interval '3 days' where application_id = (select id from public.applications where user_id = 'aaaaaaaa-0000-0000-0000-000000000001' order by created_at limit 1);
+delete from net.calls;
+select pg_temp.check(public.send_document_reminders() >= 1, 'daily reminder finds documents still missing after 2 days');
+select pg_temp.check((select count(*) >= 1 from net.calls where body->'en'->>'title' = 'Reminder: document still needed'), 'reminder notification sent');
 reset role;
 select 'ALL CHECKS PASSED' as result;

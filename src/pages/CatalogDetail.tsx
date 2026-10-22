@@ -13,6 +13,7 @@ import { StatusTag, VerdictBadge } from '@/components/SchemeBits';
 import ListenButton from '@/components/ListenButton';
 import { ButtonLink, Card, Notice } from '@/components/ui';
 import { cn } from '@/lib/utils';
+import AgentWarning from '@/components/AgentWarning';
 
 export default function CatalogDetail({ kind }: { kind: 'scheme' | 'service' }) {
   const { id = '' } = useParams();
@@ -72,6 +73,7 @@ export default function CatalogDetail({ kind }: { kind: 'scheme' | 'service' }) 
             <Notice tone="warn">{tx('The government has announced this but applications have not opened. Do not pay anyone who offers to register you.', 'ప్రభుత్వం ప్రకటించింది కానీ దరఖాస్తులు ఇంకా ప్రారంభం కాలేదు. నమోదు చేస్తామని డబ్బు అడిగేవారికి చెల్లించవద్దు.')}</Notice>
           )}
           {e.note && <Notice>{pick(e.note, lang)}</Notice>}
+          {applyable && <AgentWarning />}
 
           {j && j.verdict !== 'eligible' && (
             <Card className={cn('p-4', j.verdict === 'no' ? 'border-kumkum/30' : 'border-amber/30')}>

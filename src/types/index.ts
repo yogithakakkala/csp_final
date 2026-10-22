@@ -236,3 +236,20 @@ export interface ApplicationDraft {
   updated_at: string;
   scheme?: Scheme;
 }
+
+export type AgentReportStatus = 'new' | 'reviewing' | 'closed';
+
+export interface AgentReport {
+  id: string;
+  user_id: string;
+  agent_name: string | null;
+  agent_phone: string | null;
+  place: string | null;
+  amount_asked: number | null;
+  scheme_id: string | null;
+  details: string;
+  status: AgentReportStatus;
+  staff_note: string | null;
+  created_at: string;
+  updated_at: string;
+}

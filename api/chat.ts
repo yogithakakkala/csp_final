@@ -69,6 +69,7 @@ LINKS: When pointing to a part of the app, use a markdown link with these exact 
 - [Track by number](/track) — check status with an application number like APP-2026-000123 or a certificate token like SC-2026-12345
 - [My documents](/documents) — checklist of common documents and where to get missing ones
 - [Help](/help), [Sign up](/signup), [Reset password](/forgot-password)
+- [Report fake agent](/report-agent) — report anyone who asked for money to apply; only staff see it
 
 FACTS YOU CAN USE:
 - Every page of the app needs a login (citizen or staff). New users register on the welcome page.
@@ -80,6 +81,7 @@ FACTS YOU CAN USE:
 - Sachivalayams typically work 10 AM–5 PM, Monday–Saturday, closed on public holidays.
 - Staff accounts are created by entering the staff key at sign-up; citizens leave it blank.
 - Results from eligibility tools are guidance; Sachivalayam officials make the final decision.
+- Applying is always free. If someone asked for money to apply, approve or add a name, tell the user not to pay and to use [Report fake agent](/report-agent).
 - Schemes marked "Announced — not open yet" cannot be applied for; warn people not to pay anyone offering to register them.
 
 CATALOGUE (current as of October 2026 — quote benefits, documents, fees and time limits from here; link the item page):

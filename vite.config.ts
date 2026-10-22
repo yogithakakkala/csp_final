@@ -2,6 +2,7 @@ import { defineConfig, loadEnv, type Plugin, type ViteDevServer } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import path from 'node:path';
+import fs from 'node:fs';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 
 /**
@@ -57,13 +58,29 @@ function vercelApiInDev(): Plugin {
   };
 }
 
+/** Fills the service worker with every built file so the whole app works offline. */
+function serviceWorkerPrecache(): Plugin {
+  return {
+    name: 'sachiseva-sw-precache',
+    apply: 'build',
+    writeBundle(options, bundle) {
+      const dir = options.dir ?? 'dist';
+      const files = ['/', '/index.html', '/manifest.webmanifest', '/favicon.svg', '/icon-192.png', '/icon-512.png',
+        ...Object.keys(bundle).filter((f) => !f.endsWith('.map') && !f.endsWith('.html')).map((f) => `/${f}`)];
+      const swPath = path.join(dir, 'sw.js');
+      const src = fs.readFileSync(swPath, 'utf8');
+      fs.writeFileSync(swPath, src.replace('const PRECACHE = __PRECACHE__;', `const PRECACHE = ${JSON.stringify([...new Set(files)])};`).replace("'__VERSION__'", `'${Date.now().toString(36)}'`));
+    },
+  };
+}
+
 export default defineConfig(({ mode }) => {
   // Make non-VITE_ env vars (AI keys, service role) visible to /api in dev.
   const env = loadEnv(mode, process.cwd(), '');
   for (const [k, v] of Object.entries(env)) if (!(k in process.env)) process.env[k] = v;
 
   return {
-    plugins: [react(), tailwindcss(), vercelApiInDev()],
+    plugins: [react(), tailwindcss(), vercelApiInDev(), serviceWorkerPrecache()],
     resolve: { alias: { '@': path.resolve(__dirname, 'src') } },
     build: {
       target: 'es2020',

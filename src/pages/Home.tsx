@@ -12,6 +12,7 @@ import { loadDbCenters, withDistance, busyIsStale, type Center } from '@/lib/pla
 import { MiniProgress, schemeLabel } from '@/components/ApplicationBits';
 import { Card, Skeleton, StatusBadge } from '@/components/ui';
 import type { Application, ApplicationDraft } from '@/types';
+import AgentWarning from '@/components/AgentWarning';
 
 export default function Home() {
   const { lang, tx } = useLang();
@@ -107,6 +108,8 @@ export default function Home() {
           </Link>
         </div>
       </section>
+
+      <AgentWarning />
 
       {/* Things that need the citizen's attention — one list, most urgent first */}
       {(needDocs.length > 0 || drafts.length > 0 || busyNearest) && (

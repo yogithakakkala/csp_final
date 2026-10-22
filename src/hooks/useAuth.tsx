@@ -3,6 +3,7 @@ import type { Session } from '@supabase/supabase-js';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { claimPendingStaffKey } from '@/lib/staff';
 import type { Profile } from '@/types';
+import { forgetDevice } from '@/lib/push';
 
 type AuthContextValue = {
   session: Session | null;
@@ -97,6 +98,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [uid]);
 
   const signOut = useCallback(async () => {
+    await forgetDevice();
     await supabase.auth.signOut();
     setProfile(null);
   }, []);

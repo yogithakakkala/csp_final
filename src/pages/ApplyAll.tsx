@@ -15,6 +15,7 @@ import { pick } from '@/data/catalog';
 import { VerdictBadge } from '@/components/SchemeBits';
 import { Button, ButtonLink, Card, Field, FullPageLoader, Input, Notice, PageHeader, Textarea } from '@/components/ui';
 import { cn } from '@/lib/utils';
+import AgentWarning from '@/components/AgentWarning';
 
 type Details = { full_name: string; phone: string; address: string; aadhaar_last4: string };
 type Result = { id: string; ok: boolean; appId?: string; token?: string | null; error?: string };
@@ -191,6 +192,7 @@ export default function ApplyAll() {
         subtitle={tx('Pick the schemes, fill your details once and add each document once. We send a separate application for every scheme.', 'పథకాలు ఎంచుకోండి, వివరాలు ఒక్కసారి నింపండి, ప్రతి పత్రం ఒక్కసారి జోడించండి. ప్రతి పథకానికి వేరుగా దరఖాస్తు పంపుతాం.')}
       />
 
+      <AgentWarning compact className="mb-5" />
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
         <div className="space-y-6">
           <section>

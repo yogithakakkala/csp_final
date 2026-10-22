@@ -24,7 +24,7 @@ const FAQ: { q: [string, string]; a: [string, string]; link?: [string, string, s
   },
   {
     q: ['Where is my application now?', 'నా దరఖాస్తు ఇప్పుడు ఎక్కడ ఉంది?'],
-    a: ['Open Applications and tap it to see each step with dates. Anyone can also check with the application number on Track by number — no login needed.', '“దరఖాస్తులు”లో దాన్ని నొక్కితే ప్రతి దశ తేదీలతో కనిపిస్తుంది. “నంబర్‌తో ట్రాక్”లో లాగిన్ లేకుండా కూడా చూడవచ్చు.'],
+    a: ['Open Applications and tap it to see each step with dates. You can also check with the application number on Track by number.', '“దరఖాస్తులు”లో దాన్ని నొక్కితే ప్రతి దశ తేదీలతో కనిపిస్తుంది. “నంబర్‌తో ట్రాక్”లో అప్లికేషన్ నంబర్‌తో కూడా చూడవచ్చు.'],
     link: ['/track', 'Track by number', 'నంబర్‌తో ట్రాక్'],
   },
   {
@@ -44,6 +44,11 @@ const FAQ: { q: [string, string]; a: [string, string]; link?: [string, string, s
     q: ['I forgot my password', 'పాస్‌వర్డ్ మర్చిపోయాను'],
     a: ['Use Reset password on the login screen. We’ll email you a link to set a new one.', 'లాగిన్ స్క్రీన్‌లో “పాస్‌వర్డ్ మర్చిపోయారా?” నొక్కండి. కొత్త పాస్‌వర్డ్ కోసం లింక్ ఇమెయిల్ చేస్తాం.'],
     link: ['/forgot-password', 'Reset password', 'పాస్‌వర్డ్ రీసెట్'],
+  },
+  {
+    q: ['Someone asked me for money to apply', 'దరఖాస్తు కోసం ఒకరు డబ్బు అడిగారు'],
+    a: ['Applying for schemes and Sachivalayam services is free. Do not pay any agent, volunteer or official. Tell us using Report fake agent — only Sachivalayam staff can see your report.', 'పథకాలు, సచివాలయ సేవలకు దరఖాస్తు ఉచితం. ఏ ఏజెంట్‌కి, వాలంటీర్‌కి లేదా అధికారికి డబ్బు ఇవ్వకండి. “నకిలీ ఏజెంట్ రిపోర్ట్” ద్వారా మాకు చెప్పండి — మీ రిపోర్ట్‌ను సచివాలయ సిబ్బంది మాత్రమే చూడగలరు.'],
+    link: ['/report-agent', 'Report fake agent', 'నకిలీ ఏజెంట్ రిపోర్ట్'],
   },
   {
     q: ['Is my information safe?', 'నా సమాచారం సురక్షితమేనా?'],

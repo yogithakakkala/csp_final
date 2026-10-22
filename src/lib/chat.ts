@@ -137,6 +137,11 @@ export function localAnswer(input: string, lang: Lang): string {
       '1. Open [All schemes](/schemes) and pick one.\n2. Tap **Apply** and fill in your details.\n3. Upload photos of your documents.\n4. Submit — you get an application number to track it. Your progress saves automatically.',
       '1. [అన్ని పథకాలు](/schemes) తెరిచి ఒకటి ఎంచుకోండి.\n2. **దరఖాస్తు చేయండి** నొక్కి వివరాలు నింపండి.\n3. పత్రాల ఫోటోలు అప్‌లోడ్ చేయండి.\n4. సమర్పించండి — ట్రాక్ చేయడానికి నంబర్ వస్తుంది. మీ పురోగతి ఆటోమేటిక్‌గా సేవ్ అవుతుంది.',
     );
+  if (has(q, 'money', 'bribe', 'agent', 'paid', 'pay', 'లంచం', 'డబ్బు', 'ఏజెంట్'))
+    return T(
+      'Applying for schemes and Sachivalayam services is **free**. Do not pay anyone. If someone asked you for money, tell us on [Report fake agent](/report-agent) — only Sachivalayam staff can see it.',
+      'పథకాలు, సచివాలయ సేవలకు దరఖాస్తు **ఉచితం**. ఎవరికీ డబ్బు ఇవ్వకండి. ఎవరైనా డబ్బు అడిగితే [నకిలీ ఏజెంట్ రిపోర్ట్](/report-agent)లో చెప్పండి — సచివాలయ సిబ్బంది మాత్రమే చూడగలరు.',
+    );
   if (has(q, 'no update', 'delay', 'escalat', 'grievance', 'complain', 'ఫిర్యాదు', 'అప్‌డేట్ లేదు'))
     return T(
       'If an application has no update for 7 days, an **Escalate** button appears on it in [Applications](/my-applications). Staff are alerted and you are notified when they respond.',

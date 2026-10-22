@@ -9,6 +9,7 @@ import { useUnreadUpdates } from '@/hooks/useUnreadUpdates';
 import { MiniProgress, daysSince, schemeLabel } from '@/components/ApplicationBits';
 import { Button, ButtonLink, EmptyState, ListSkeleton, PageHeader, Sheet, StatusBadge, Textarea } from '@/components/ui';
 import type { Application, ApplicationDraft, Grievance } from '@/types';
+import NotificationToggle from '@/components/NotificationToggle';
 
 export default function MyApplications() {
   const { lang, tx } = useLang();
@@ -86,6 +87,8 @@ export default function MyApplications() {
         subtitle={tx('Updates appear here as soon as staff act on them.', 'సిబ్బంది చర్య తీసుకున్న వెంటనే అప్‌డేట్‌లు ఇక్కడ కనిపిస్తాయి.')}
         action={<ButtonLink to="/schemes" variant="outline" size="sm">{tx('New application', 'కొత్త దరఖాస్తు')}</ButtonLink>}
       />
+
+      <NotificationToggle variant="card" className="mb-6" />
 
       {drafts.length > 0 && (
         <section className="mb-8">

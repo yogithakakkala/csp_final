@@ -30,6 +30,7 @@ const MyApplications = lazy(() => import('@/pages/MyApplications'));
 const ApplicationDetail = lazy(() => import('@/pages/ApplicationDetail'));
 const SachiBot = lazy(() => import('@/pages/SachiBot'));
 const Help = lazy(() => import('@/pages/Help'));
+const ReportAgent = lazy(() => import('@/pages/ReportAgent'));
 const NotFound = lazy(() => import('@/pages/NotFound'));
 
 const AdminLayout = lazy(() => import('@/pages/admin/AdminLayout'));
@@ -43,6 +44,7 @@ const AdminCenters = lazy(() => import('@/pages/admin/AdminCenters'));
 const AdminCertificates = lazy(() => import('@/pages/admin/AdminCertificates'));
 const AdminStaff = lazy(() => import('@/pages/admin/AdminStaff'));
 const AdminHealth = lazy(() => import('@/pages/admin/AdminHealth'));
+const AdminReports = lazy(() => import('@/pages/admin/AdminReports'));
 
 function Gate({ need }: { need: 'citizen' | 'staff' | 'guest' }) {
   const { user, isStaff, ready, holdRedirect } = useAuth();
@@ -135,6 +137,7 @@ export default function App() {
               <Route path="/certificate" element={<Navigate to="/track" replace />} />
               <Route path="/sachibot" element={<SachiBot />} />
               <Route path="/help" element={<Help />} />
+              <Route path="/report-agent" element={<ReportAgent />} />
               <Route path="/schemes/:schemeId/apply" element={<SchemeApply />} />
               <Route path="/apply-all" element={<ApplyAll />} />
               <Route path="/documents" element={<DocumentChecklist />} />
@@ -149,6 +152,7 @@ export default function App() {
               <Route path="applications" element={<AdminApplications />} />
               <Route path="applications/:applicationId" element={<AdminApplicationDetail />} />
               <Route path="grievances" element={<AdminGrievances />} />
+              <Route path="reports" element={<AdminReports />} />
               <Route path="inbox" element={<AdminInbox />} />
               <Route path="contact" element={<Navigate to="/admin/inbox" replace />} />
               <Route path="status" element={<Navigate to="/admin/applications?status=submitted" replace />} />

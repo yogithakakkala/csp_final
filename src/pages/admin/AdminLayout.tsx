@@ -1,6 +1,6 @@
 import { Suspense, useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { Activity, AlertOctagon, Award, Building2, FileCog, FolderOpen, Gauge, Languages, LogOut, Menu, MessagesSquare, ShieldCheck, Users, X } from 'lucide-react';
+import { Activity, AlertOctagon, ShieldAlert, Award, Building2, FileCog, FolderOpen, Gauge, Languages, LogOut, Menu, MessagesSquare, ShieldCheck, Users, X } from 'lucide-react';
 import { useLang } from '@/lib/i18n';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
@@ -13,6 +13,7 @@ const NAV = [
   { to: '/admin/applications', en: 'Applications', te: 'దరఖాస్తులు', Icon: FolderOpen, badge: 'new' as const },
   { to: '/admin/inbox', en: 'Messages', te: 'సందేశాలు', Icon: MessagesSquare, badge: 'msgs' as const },
   { to: '/admin/grievances', en: 'Grievances', te: 'ఫిర్యాదులు', Icon: AlertOctagon, badge: 'griev' as const },
+  { to: '/admin/reports', en: 'Fake-agent reports', te: 'నకిలీ ఏజెంట్ రిపోర్ట్‌లు', Icon: ShieldAlert, badge: 'rep' as const },
   { to: '/admin/certificates', en: 'Certificates', te: 'ధృవపత్రాలు', Icon: Award },
   { to: '/admin/centers', en: 'Centres & crowd', te: 'కేంద్రాలు & రద్దీ', Icon: Building2 },
   { to: '/admin/schemes', en: 'Schemes', te: 'పథకాలు', Icon: FileCog },
@@ -22,20 +23,22 @@ const NAV = [
 
 /** Live counts for the nav badges. */
 function useBadges() {
-  const [b, setB] = useState({ new: 0, griev: 0, msgs: 0 });
+  const [b, setB] = useState({ new: 0, griev: 0, msgs: 0, rep: 0 });
   useEffect(() => {
     const load = async () => {
-      const [a, g] = await Promise.all([
+      const [a, g, r] = await Promise.all([
         supabase.from('applications').select('id', { count: 'exact', head: true }).eq('status', 'submitted'),
         supabase.from('grievances').select('id', { count: 'exact', head: true }).eq('status', 'raised'),
+        supabase.from('agent_reports').select('id', { count: 'exact', head: true }).eq('status', 'new'),
       ]);
-      setB((x) => ({ ...x, new: a.count ?? 0, griev: g.count ?? 0 }));
+      setB((x) => ({ ...x, new: a.count ?? 0, griev: g.count ?? 0, rep: r.count ?? 0 }));
     };
     void load();
     const ch = supabase
       .channel('admin-badges')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'applications' }, load)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'grievances' }, load)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'agent_reports' }, load)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'application_messages' }, (p) => {
         if ((p.new as { sender_type: string }).sender_type === 'user' && !window.location.pathname.startsWith('/admin/inbox')) setB((x) => ({ ...x, msgs: x.msgs + 1 }));
       })
@@ -89,7 +92,7 @@ export default function AdminLayout() {
                 <>
                   <Icon className={cn('size-[18px]', isActive ? 'text-turmeric-deep' : '')} />
                   <span className="flex-1">{tx(en, te)}</span>
-                  {n > 0 && <span className={cn('grid h-5 min-w-5 place-items-center rounded-full px-1.5 text-[11px] font-bold', badge === 'griev' ? 'bg-kumkum text-white' : 'bg-turmeric text-ink')}>{n > 99 ? '99+' : n}</span>}
+                  {n > 0 && <span className={cn('grid h-5 min-w-5 place-items-center rounded-full px-1.5 text-[11px] font-bold', badge === 'griev' || badge === 'rep' ? 'bg-kumkum text-white' : 'bg-turmeric text-ink')}>{n > 99 ? '99+' : n}</span>}
                 </>
               )}
             </NavLink>
