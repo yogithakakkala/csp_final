@@ -20,8 +20,6 @@ interface Provider {
   /** Tried in order; the next is used if the provider says a model doesn't exist. */
   models: string[];
   headers?: Record<string, string>;
-  /** Extra request fields that make replies faster (dropped automatically if a model rejects them). */
-  fast?: Record<string, unknown>;
 }
 
 function pickProvider(): Provider | null {
@@ -34,9 +32,9 @@ function pickProvider(): Provider | null {
       name: 'gemini',
       url: (env.GEMINI_BASE_URL ?? 'https://generativelanguage.googleapis.com/v1beta/openai').replace(/\/$/, '') + '/chat/completions',
       key: env.GEMINI_API_KEY,
-      // Fast Flash models first; "thinking" is switched off below so replies start within a second or two.
-      models: [...custom, 'gemini-2.5-flash', 'gemini-flash-latest', 'gemini-2.5-flash-lite', 'gemini-flash-lite-latest'],
-      fast: { reasoning_effort: 'none' },
+      // Flash-Lite answers in under a second; the bigger Flash models are the backup when it is busy.
+      // (gemini-2.5-* were retired by Google in 2026.)
+      models: [...custom, 'gemini-flash-lite-latest', 'gemini-3.5-flash-lite', 'gemini-flash-latest', 'gemini-3.8-flash'],
     };
   if (env.OPENAI_API_KEY) return { name: 'openai', url: 'https://api.openai.com/v1/chat/completions', key: env.OPENAI_API_KEY, models: [...custom, 'gpt-4o-mini', 'gpt-4.1-mini'] };
   if (env.GROQ_API_KEY)
@@ -107,48 +105,47 @@ export async function POST(request: Request): Promise<Response> {
   if (!messages.length) return json({ error: 'No messages' }, 400);
 
   const system = systemPrompt(lang);
-  const payload = (model: string, fast: boolean | Record<string, unknown>) =>
+  const payload = (model: string) =>
     JSON.stringify({
       model,
       stream: true,
       temperature: 0.3,
       max_tokens: 900,
-      ...(fast === true ? provider.fast : fast || {}),
       messages: [{ role: 'system', content: system }, ...messages],
     });
 
-  // Give up on a provider that hasn't started answering in 20 s; the app then answers from its saved help.
-  const call = (model: string, fast: boolean | Record<string, unknown>) =>
-    fetch(provider.url, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', authorization: `Bearer ${provider.key}`, ...provider.headers },
-      body: payload(model, fast),
-      signal: AbortSignal.timeout(20_000),
-    });
+  // Each model gets 12 s to START answering (the reply itself may stream for longer).
+  const call = async (model: string) => {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 12_000);
+    try {
+      return await fetch(provider.url, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', authorization: `Bearer ${provider.key}`, ...provider.headers },
+        body: payload(model),
+        signal: ctrl.signal,
+      });
+    } finally {
+      clearTimeout(timer);
+    }
+  };
 
   let upstream: Response | null = null;
   let lastError = '';
   for (const model of provider.models) {
     try {
-      upstream = await call(model, !!provider.fast);
-      // A model that doesn't accept the speed setting → ask it again without the setting.
-      if (!upstream.ok && provider.fast && upstream.status === 400) {
-        const text = await upstream.text().catch(() => '');
-        if (/reasoning|thinking/i.test(text)) {
-          // Newer models may not allow switching thinking off completely — keep it short instead.
-          upstream = await call(model, { reasoning_effort: 'low' });
-          if (!upstream.ok && upstream.status === 400) upstream = await call(model, false);
-        } else upstream = new Response(text, { status: 400 });
-      }
+      upstream = await call(model);
     } catch (err) {
-      return json({ error: `AI service unreachable: ${(err as Error).message}` }, 504);
+      // Too slow or unreachable → try the next model.
+      console.error(`[chat] ${provider.name}/${model} → ${(err as Error).message}`);
+      upstream = null;
+      continue;
     }
     if (upstream.ok) break;
     lastError = await upstream.text().catch(() => '');
     console.error(`[chat] ${provider.name}/${model} → ${upstream.status} ${lastError.slice(0, 300)}`);
-    // Unknown / retired model → try the next one. Anything else (bad key, quota) → stop.
-    const modelProblem = upstream.status === 404 || (upstream.status === 400 && /model/i.test(lastError));
-    if (!modelProblem) break;
+    // Bad key → stop. Retired model, busy model, bad request or server error → try the next one.
+    if (upstream.status === 401 || upstream.status === 403) break;
   }
 
   if (!upstream || !upstream.ok || !upstream.body) {
@@ -177,13 +174,13 @@ export async function POST(request: Request): Promise<Response> {
 
 export async function GET(request?: Request): Promise<Response> {
   const p = pickProvider();
-  const base = { ok: true, configured: p !== null, provider: p?.name ?? null, model: p?.models[0] ?? null, version: 3 };
+  const base = { ok: true, configured: p !== null, provider: p?.name ?? null, model: p?.models[0] ?? null, version: 4 };
   // ?check=1 sends one tiny question to each model and reports what the AI service answered (no keys are shown).
   const url = request ? new URL(request.url, 'http://localhost') : null;
   if (!p || !url?.searchParams.has('check')) return json(base);
   const results = [];
   for (const model of p.models) {
-    for (const extra of [p.fast ?? {}, {}]) {
+    for (const extra of [{}]) {
       const t = Date.now();
       try {
         const r = await fetch(p.url, {
