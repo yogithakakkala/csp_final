@@ -177,9 +177,10 @@ export async function POST(request: Request): Promise<Response> {
 
 export async function GET(request?: Request): Promise<Response> {
   const p = pickProvider();
-  const base = { ok: true, configured: p !== null, provider: p?.name ?? null, model: p?.models[0] ?? null };
+  const base = { ok: true, configured: p !== null, provider: p?.name ?? null, model: p?.models[0] ?? null, version: 3 };
   // ?check=1 sends one tiny question to each model and reports what the AI service answered (no keys are shown).
-  if (!p || !request || !new URL(request.url).searchParams.has('check')) return json(base);
+  const url = request ? new URL(request.url, 'http://localhost') : null;
+  if (!p || !url?.searchParams.has('check')) return json(base);
   const results = [];
   for (const model of p.models) {
     for (const extra of [p.fast ?? {}, {}]) {
