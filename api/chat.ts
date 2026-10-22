@@ -20,6 +20,8 @@ interface Provider {
   /** Tried in order; the next is used if the provider says a model doesn't exist. */
   models: string[];
   headers?: Record<string, string>;
+  /** Extra request fields that make replies faster (dropped automatically if a model rejects them). */
+  fast?: Record<string, unknown>;
 }
 
 function pickProvider(): Provider | null {
@@ -32,8 +34,9 @@ function pickProvider(): Provider | null {
       name: 'gemini',
       url: (env.GEMINI_BASE_URL ?? 'https://generativelanguage.googleapis.com/v1beta/openai').replace(/\/$/, '') + '/chat/completions',
       key: env.GEMINI_API_KEY,
-      // gemini-flash-latest always points at Google's current Flash model.
-      models: [...custom, 'gemini-flash-latest', 'gemini-3.8-flash', 'gemini-2.5-flash'],
+      // Fast Flash models first; "thinking" is switched off below so replies start within a second or two.
+      models: [...custom, 'gemini-2.5-flash', 'gemini-flash-latest', 'gemini-2.5-flash-lite', 'gemini-flash-lite-latest'],
+      fast: { reasoning_effort: 'none' },
     };
   if (env.OPENAI_API_KEY) return { name: 'openai', url: 'https://api.openai.com/v1/chat/completions', key: env.OPENAI_API_KEY, models: [...custom, 'gpt-4o-mini', 'gpt-4.1-mini'] };
   if (env.GROQ_API_KEY)
@@ -57,7 +60,7 @@ function systemPrompt(lang: 'en' | 'te') {
 
 LANGUAGE: Reply in the language the user writes in. Telugu in → Telugu out. English in → English out. Mixed → reply in both. The app is currently set to ${lang === 'te' ? 'Telugu' : 'English'}; use that only when the message is ambiguous.
 
-STYLE: Short and warm — 2–4 sentences, or numbered steps of one sentence each. Many users are elderly or new to smartphones. Use simple words. Never invent phone numbers, addresses, officer names or deadlines. If you don't know, say so and suggest visiting the nearest Sachivalayam.
+STYLE: Answer directly in the first sentence. Short and warm — 2–4 sentences, or numbered steps of one sentence each. Many users are elderly or new to smartphones. Use simple words. Never invent phone numbers, addresses, officer names or deadlines. If you don't know, say so and suggest visiting the nearest Sachivalayam.
 
 LINKS: When pointing to a part of the app, use a markdown link with these exact paths so the user can tap it:
 - [My schemes](/eligible) — the family answers a few questions once (the government's six-step check: income, land, electricity, car, govt job, income tax, town property) and sees EVERY scheme they qualify for, their personal benefit, one combined document list, and an "Apply for all" button. Always suggest this for "which schemes can I get?"
@@ -65,12 +68,15 @@ LINKS: When pointing to a part of the app, use a markdown link with these exact 
 - [All schemes](/schemes) and [Services & certificates](/services) — every scheme / service has its own page (links below) with who qualifies, documents, steps, fee and time limit
 - [Find a centre](/nearest-center) — Sachivalayams and MeeSeva centres anywhere in AP, via GPS or by typing a village/town; shows live "busy" level set by staff; directions via Google Maps
 - [Applications](/my-applications) — your applications, progress timeline, chat with staff, upload requested documents, drafts, escalate after 7 days without update
-- [Track by number](/track) — check status with an application number like APP-2026-000123 or a certificate token like SC-2026-12345, no login needed
+- [Track by number](/track) — check status with an application number like APP-2026-000123 or a certificate token like SC-2026-12345
 - [My documents](/documents) — checklist of common documents and where to get missing ones
 - [Help](/help), [Sign up](/signup), [Reset password](/forgot-password)
 
 FACTS YOU CAN USE:
+- Every page of the app needs a login (citizen or staff). New users register on the welcome page.
 - Application statuses: Submitted → Under review → (Documents needed) → Approved / Rejected. Typical processing 7–30 days depending on the scheme.
+- When an application is approved or rejected, the citizen automatically gets a message asking them to visit their nearby Sachivalayam, where staff explain the next steps.
+- Staff can ask for one or more documents; each request shows its own Upload button in the application, and the citizen can also attach a photo or PDF in the chat at any time.
 - Forms auto-save as drafts. Staff can request extra documents in the application chat; the citizen uploads from the same screen.
 - Documents usually come from: Aadhaar → Aadhaar Seva Kendra/MeeSeva; Caste, Income, Residence → Sachivalayam/MeeSeva/Tahsildar; Birth/Death → municipality or gram panchayat; Ration card → Sachivalayam.
 - Sachivalayams typically work 10 AM–5 PM, Monday–Saturday, closed on public holidays.
@@ -100,26 +106,42 @@ export async function POST(request: Request): Promise<Response> {
     .map((m) => ({ role: m.role, content: m.content.slice(0, 2000) }));
   if (!messages.length) return json({ error: 'No messages' }, 400);
 
-  const payload = (model: string) =>
+  const system = systemPrompt(lang);
+  const payload = (model: string, fast: boolean | Record<string, unknown>) =>
     JSON.stringify({
       model,
       stream: true,
-      temperature: 0.4,
-      max_tokens: 700,
-      messages: [{ role: 'system', content: systemPrompt(lang) }, ...messages],
+      temperature: 0.3,
+      max_tokens: 900,
+      ...(fast === true ? provider.fast : fast || {}),
+      messages: [{ role: 'system', content: system }, ...messages],
+    });
+
+  // Give up on a provider that hasn't started answering in 20 s; the app then answers from its saved help.
+  const call = (model: string, fast: boolean | Record<string, unknown>) =>
+    fetch(provider.url, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${provider.key}`, ...provider.headers },
+      body: payload(model, fast),
+      signal: AbortSignal.timeout(20_000),
     });
 
   let upstream: Response | null = null;
   let lastError = '';
   for (const model of provider.models) {
     try {
-      upstream = await fetch(provider.url, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json', authorization: `Bearer ${provider.key}`, ...provider.headers },
-        body: payload(model),
-      });
+      upstream = await call(model, !!provider.fast);
+      // A model that doesn't accept the speed setting → ask it again without the setting.
+      if (!upstream.ok && provider.fast && upstream.status === 400) {
+        const text = await upstream.text().catch(() => '');
+        if (/reasoning|thinking/i.test(text)) {
+          // Newer models may not allow switching thinking off completely — keep it short instead.
+          upstream = await call(model, { reasoning_effort: 'low' });
+          if (!upstream.ok && upstream.status === 400) upstream = await call(model, false);
+        } else upstream = new Response(text, { status: 400 });
+      }
     } catch (err) {
-      return json({ error: `AI service unreachable: ${(err as Error).message}` }, 502);
+      return json({ error: `AI service unreachable: ${(err as Error).message}` }, 504);
     }
     if (upstream.ok) break;
     lastError = await upstream.text().catch(() => '');

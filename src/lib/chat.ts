@@ -13,12 +13,23 @@ export async function askSachiBot(
   onDelta: (textSoFar: string) => void,
   signal?: AbortSignal,
 ): Promise<{ text: string; offline: boolean }> {
+  // Stop waiting if the AI hasn't started answering in 25 s, or stalls for 15 s mid-reply.
+  const ctrl = new AbortController();
+  let timedOut = false;
+  let timer = setTimeout(() => ((timedOut = true), ctrl.abort()), 25_000);
+  const poke = () => {
+    clearTimeout(timer);
+    timer = setTimeout(() => ((timedOut = true), ctrl.abort()), 15_000);
+  };
+  const onOuterAbort = () => ctrl.abort();
+  signal?.addEventListener('abort', onOuterAbort);
+  let partial = '';
   try {
     const res = await fetch('/api/chat', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ messages: messages.slice(-12), lang }),
-      signal,
+      body: JSON.stringify({ messages: messages.slice(-10), lang }),
+      signal: ctrl.signal,
     });
     const type = res.headers.get('content-type') ?? '';
     if (res.ok && type.includes('text/event-stream') && res.body) {
@@ -29,6 +40,7 @@ export async function askSachiBot(
       for (;;) {
         const { done, value } = await reader.read();
         if (done) break;
+        poke();
         buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split('\n');
         buffer = lines.pop() ?? '';
@@ -42,6 +54,7 @@ export async function askSachiBot(
             const piece = json.choices?.[0]?.delta?.content;
             if (piece) {
               text += piece;
+              partial = text;
               onDelta(text);
             }
           } catch {
@@ -58,7 +71,11 @@ export async function askSachiBot(
       }
     }
   } catch (e) {
-    if ((e as Error).name === 'AbortError') throw e;
+    if ((e as Error).name === 'AbortError' && !timedOut) throw e; // the person stopped it
+    if (partial.trim()) return { text: partial, offline: false }; // keep what already arrived
+  } finally {
+    clearTimeout(timer);
+    signal?.removeEventListener('abort', onOuterAbort);
   }
   const last = [...messages].reverse().find((m) => m.role === 'user')?.content ?? '';
   const text = localAnswer(last, lang);
@@ -107,8 +124,8 @@ export function localAnswer(input: string, lang: Lang): string {
     );
   if (has(q, 'status', 'track', 'where is my', 'token', 'app-', 'స్థితి', 'ట్రాక్', 'ఎక్కడ ఉంది'))
     return T(
-      'See every application with its progress timeline in [Applications](/my-applications). Have an application number like APP-2026-000123? Enter it in [Track by number](/track) — no login needed.',
-      'మీ దరఖాస్తుల పురోగతి [దరఖాస్తులు](/my-applications)లో ఉంది. APP-2026-000123 వంటి నంబర్ ఉంటే [నంబర్‌తో ట్రాక్](/track)లో టైప్ చేయండి — లాగిన్ అవసరం లేదు.',
+      'See every application with its progress timeline in [Applications](/my-applications). Have an application number like APP-2026-000123? Enter it in [Track by number](/track).',
+      'మీ దరఖాస్తుల పురోగతి [దరఖాస్తులు](/my-applications)లో ఉంది. APP-2026-000123 వంటి నంబర్ ఉంటే [నంబర్‌తో ట్రాక్](/track)లో టైప్ చేయండి.',
     );
   if (has(q, 'document', 'certificate', 'papers', 'need', 'పత్ర', 'ధృవ', 'కావాలి'))
     return T(
