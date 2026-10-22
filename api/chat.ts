@@ -175,7 +175,28 @@ export async function POST(request: Request): Promise<Response> {
   });
 }
 
-export function GET(): Response {
+export async function GET(request?: Request): Promise<Response> {
   const p = pickProvider();
-  return json({ ok: true, configured: p !== null, provider: p?.name ?? null, model: p?.models[0] ?? null });
+  const base = { ok: true, configured: p !== null, provider: p?.name ?? null, model: p?.models[0] ?? null };
+  // ?check=1 sends one tiny question to each model and reports what the AI service answered (no keys are shown).
+  if (!p || !request || !new URL(request.url).searchParams.has('check')) return json(base);
+  const results = [];
+  for (const model of p.models) {
+    for (const extra of [p.fast ?? {}, {}]) {
+      const t = Date.now();
+      try {
+        const r = await fetch(p.url, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', authorization: `Bearer ${p.key}`, ...p.headers },
+          body: JSON.stringify({ model, max_tokens: 60, messages: [{ role: 'user', content: 'Say hello in one short sentence.' }], ...extra }),
+          signal: AbortSignal.timeout(20_000),
+        });
+        const text = await r.text();
+        results.push({ model, extra, status: r.status, ms: Date.now() - t, body: text.slice(0, 400) });
+      } catch (e) {
+        results.push({ model, extra, status: 0, ms: Date.now() - t, body: (e as Error).message });
+      }
+    }
+  }
+  return json({ ...base, results });
 }
